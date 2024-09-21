@@ -47,7 +47,9 @@ void lex_read_identifier(struct lex_Lexer *lexer, sstring str) {
     while (lex_is_letter(lexer->ch)) {
         lex_read_char(lexer);
     }
-    strncpy(str, lexer->input + position, lexer->position - position);
+    int str_len = lexer->position - position;
+    strncpy(str, lexer->input + position, str_len);
+    str[str_len] = '\0';
 }
 
 void lex_read_number(struct lex_Lexer *lexer, sstring str) {
@@ -55,7 +57,9 @@ void lex_read_number(struct lex_Lexer *lexer, sstring str) {
     while (lex_is_alnum(lexer->ch)) {
         lex_read_char(lexer);
     }
-    strncpy(str, lexer->input + position, lexer->position - position);
+    int str_len = lexer->position - position;
+    strncpy(str, lexer->input + position, str_len);
+    str[str_len] = '\0';
 }
 
 void lex_skip_whitespace(struct lex_Lexer *lexer) {
