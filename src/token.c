@@ -1,6 +1,7 @@
 #include "util.c"
 
 #include <stdio.h>
+#include <string.h>
 
 #define ENUMERATE_TOKEN_TYPES \
     __ENUMERATE_TOKEN_TYPE(tok_ILLEGAL) \
@@ -59,4 +60,29 @@ const char *tok_Token_int_enum_to_str(int token) {
 #undef __ENUMERATE_TOKEN_TYPE
     }
     assert(0 && "should not be reached");
+}
+
+enum tok_Type tok_lookup_identifier(sstring literal) {
+    enum tok_Type tok_type;
+
+    if (0 == strcmp(literal, "let")) {
+        tok_type = tok_LET;
+    } else if (0 == strcmp(literal, "fn")) {
+        tok_type = tok_FUNCTION;
+    } else if (0 == strcmp(literal, "true")) {
+        tok_type = tok_TRUE;
+    } else if (0 == strcmp(literal, "false")) {
+        tok_type = tok_FALSE;
+    } else if (0 == strcmp(literal, "if")) {
+        tok_type = tok_IF;
+    } else if (0 == strcmp(literal, "else")) {
+        tok_type = tok_ELSE;
+    } else if (0 == strcmp(literal, "return")) {
+        tok_type = tok_RETURN;
+    } else {
+        tok_type = tok_IDENT;
+    }
+
+
+    return tok_type;
 }

@@ -1,5 +1,8 @@
 #include "token.c"
+#include "util.c"
 
+#include <ctype.h>
+#include <stdbool.h>
 #include <string.h>
 
 struct lex_Lexer {
@@ -31,8 +34,41 @@ struct lex_Lexer lex_Lexer_create(const char *input) {
     return lex;
 }
 
+bool lex_is_letter(char ch) {
+    return isalpha(ch) || ch == '_';
+}
+
+bool lex_is_alnum(char ch) {
+    return isalnum(ch);
+}
+
+void lex_read_identifier(struct lex_Lexer *lexer, sstring str) {
+    int position = lexer->position;
+    while (lex_is_letter(lexer->ch)) {
+        lex_read_char(lexer);
+    }
+    strncpy(str, lexer->input + position, lexer->position - position);
+}
+
+void lex_read_number(struct lex_Lexer *lexer, sstring str) {
+    int position = lexer->position;
+    while (lex_is_alnum(lexer->ch)) {
+        lex_read_char(lexer);
+    }
+    strncpy(str, lexer->input + position, lexer->position - position);
+}
+
+void lex_skip_whitespace(struct lex_Lexer *lexer) {
+    while (lexer->ch == ' ' || lexer->ch == '\n' || lexer->ch == '\r' ||
+           lexer->ch == '\t') {
+        lex_read_char(lexer);
+    }
+}
+
 struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
     struct tok_Token token;
+
+    lex_skip_whitespace(lexer);
 
     switch (lexer->ch) {
         case '=':
@@ -63,6 +99,19 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
             token.type = tok_EOF;
             strcpy(token.literal, "");
             break;
+        default:
+            if (lex_is_letter(lexer->ch)) {
+                lex_read_identifier(lexer, token.literal);
+                token.type = tok_lookup_identifier(token.literal);
+                return token;
+            } else if (lex_is_alnum(lexer->ch)) {
+                lex_read_number(lexer, token.literal);
+                token.type = tok_INT;
+                return token;
+            } else {
+                token = tok_Token_create(tok_ILLEGAL, lexer->ch);
+            }
+
     }
 
     lex_read_char(lexer);
