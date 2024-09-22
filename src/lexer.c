@@ -78,20 +78,38 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
         case '=':
             token = tok_Token_create(tok_ASSIGN, lexer->ch);
             break;
+        case '+':
+            token = tok_Token_create(tok_PLUS, lexer->ch);
+            break;
+        case '-':
+            token = tok_Token_create(tok_MINUS, lexer->ch);
+            break;
+        case '!':
+            token = tok_Token_create(tok_BANG, lexer->ch);
+            break;
+        case '/':
+            token = tok_Token_create(tok_SLASH, lexer->ch);
+            break;
+        case '*':
+            token = tok_Token_create(tok_ASTERISK, lexer->ch);
+            break;
+        case '<':
+            token = tok_Token_create(tok_LT, lexer->ch);
+            break;
+        case '>':
+            token = tok_Token_create(tok_GT, lexer->ch);
+            break;
         case ';':
             token = tok_Token_create(tok_SEMICOLON, lexer->ch);
+            break;
+        case ',':
+            token = tok_Token_create(tok_COMMA, lexer->ch);
             break;
         case '(':
             token = tok_Token_create(tok_LPAREN, lexer->ch);
             break;
         case ')':
             token = tok_Token_create(tok_RPAREN, lexer->ch);
-            break;
-        case ',':
-            token = tok_Token_create(tok_COMMA, lexer->ch);
-            break;
-        case '+':
-            token = tok_Token_create(tok_PLUS, lexer->ch);
             break;
         case '{':
             token = tok_Token_create(tok_LBRACE, lexer->ch);
