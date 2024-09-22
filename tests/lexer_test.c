@@ -5,8 +5,6 @@
 SUITE(lexer_suite);
 
 TEST lexer_test_next_token(void) {
-
-
     char input[] = "let five = 5;\
 let ten = 10;\
 \
@@ -22,7 +20,11 @@ if (5 < 10) {\
 	return true;\
 } else {\
 	return false;\
-}";
+}\
+\
+10 == 10;\
+10 != 9;\
+";
 
     struct tok_Token expected_tokens[] = {
         { tok_LET, "let" },     { tok_IDENT, "five" },
@@ -57,7 +59,11 @@ if (5 < 10) {\
         { tok_RBRACE, "}" },    { tok_ELSE, "else" },
         { tok_LBRACE, "{" },    { tok_RETURN, "return" },
         { tok_FALSE, "false" }, { tok_SEMICOLON, ";" },
-        { tok_RBRACE, "}" },    { tok_EOF, "" },
+        { tok_RBRACE, "}" },    { tok_INT, "10" },
+        { tok_EQ, "==" },       { tok_INT, "10" },
+        { tok_SEMICOLON, ";" }, { tok_INT, "10" },
+        { tok_NOT_EQ, "!=" },   { tok_INT, "9" },
+        { tok_SEMICOLON, ";" }, { tok_EOF, "" },
     };
     int expected_tokens_len =
         sizeof(expected_tokens) / sizeof(expected_tokens[0]);

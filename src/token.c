@@ -83,6 +83,5 @@ enum tok_Type tok_lookup_identifier(sstring literal) {
         tok_type = tok_IDENT;
     }
 
-
     return tok_type;
 }
