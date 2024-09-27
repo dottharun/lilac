@@ -28,10 +28,13 @@ $(TEST_OUT): $(TEST_SRC)
 compile-db:
 	bear -- make all
 
+stb:
+	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/nothings/stb/1ee679ca2ef753a528db5ba6801e1067b40481b8/stb_ds.h
+
 greatest:
 	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/silentbicycle/greatest/fbbf9818ec72578289716bf6002b11fd25185e02/greatest.h
 
-deps: greatest
+deps: greatest stb
 
 clean:
 	rm -rf $(OUTDIR)/*

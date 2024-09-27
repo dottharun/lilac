@@ -1,3 +1,6 @@
+#ifndef LEXER_H
+#define LEXER_H
+
 #include "token.c"
 #include "util.c"
 
@@ -157,3 +160,5 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
     lex_read_char(lexer);
     return token;
 }
+
+#endif

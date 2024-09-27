@@ -1,3 +1,6 @@
+#ifndef TOKEN_H
+#define TOKEN_H
+
 #include "util.c"
 
 #include <stdio.h>
@@ -85,3 +88,5 @@ enum tok_Type tok_lookup_identifier(sstring literal) {
 
     return tok_type;
 }
+
+#endif
