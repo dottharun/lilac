@@ -35,7 +35,8 @@ bool check_parser_errors(struct par_Parser *parser) {
 }
 
 TEST parser_test_let_statement(void) {
-    char input[] = "let x = 5;\
+    char input[] = "\
+let x = 5;\
 let y = 10;\
 let foobar = 838383;";
 
@@ -44,10 +45,9 @@ let foobar = 838383;";
 
     struct ast_Program *program = ast_alloc_program();
     par_parse_program(parser, program);
-    ASSERT(program != NULL);
 
     ASSERT(check_parser_errors(parser) == false);
-
+    ASSERT(program != NULL);
     ASSERT_EQ_FMT((size_t)3, stbds_arrlen(program->statement_ptrs_da), "%lu");
 
     char *expected_identifiers[] = { "x", "y", "foobar" };
@@ -99,4 +99,5 @@ return 993322;\
 
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
+    RUN_TEST(parser_test_ret_statement);
 }

@@ -104,11 +104,28 @@ struct ast_Let_statement *par_parse_let_statement(struct par_Parser *parser) {
     return let_stmt;
 }
 
+struct ast_Return_statement *par_parse_ret_statement(struct par_Parser *parser
+) {
+    struct ast_Return_statement *ret_stmt = ast_alloc_ret_stmt();
+    ret_stmt->token = parser->curr_token;
+
+    par_next_token(parser);
+
+    // TODO: We're skipping the expressions until we encounter a semicolon
+    while (!par_curr_token_is(parser, tok_SEMICOLON)) {
+        par_next_token(parser);
+    }
+    return ret_stmt;
+}
+
 struct ast_Statement *par_parse_statement(struct par_Parser *parser) {
     struct ast_Statement *statement = NULL;
     switch (parser->curr_token.type) {
         case tok_LET:
             statement = (struct ast_Statement *)par_parse_let_statement(parser);
+            break;
+        case tok_RETURN:
+            statement = (struct ast_Statement *)par_parse_ret_statement(parser);
             break;
         default:
             // assert(0 && "should not be reached");

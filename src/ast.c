@@ -80,7 +80,7 @@ struct ast_Let_statement {
     struct ast_Identifier *name;
 };
 
-char *ast_Let_statement_token_literal(void *stmt) {
+char *ast_let_statement_token_literal(void *stmt) {
     struct ast_Let_statement *let_stmt = (struct ast_Let_statement *)stmt;
     assert(
         (let_stmt->token.type == tok_LET) &&
@@ -108,10 +108,51 @@ struct ast_Let_statement *ast_alloc_let_stmt() {
     struct ast_Let_statement *let_stmt =
         malloc(1 * sizeof(struct ast_Let_statement));
     // defaults
-    let_stmt->token_literal = &ast_Let_statement_token_literal;
-    let_stmt->free_node = ast_free_let_stmt;
+    let_stmt->token_literal = &ast_let_statement_token_literal;
+    let_stmt->free_node = &ast_free_let_stmt;
     let_stmt->name = NULL;
     return let_stmt;
+}
+
+struct ast_Return_statement {
+    STATEMENT_INTERFACE
+    struct tok_Token token;
+    struct ast_Expression *ret_val;
+};
+
+char *ast_ret_stmt_tok_literal(void *stmt) {
+    struct ast_Return_statement *ret_stmt = (struct ast_Return_statement *)stmt;
+    assert(
+        (ret_stmt->token.type == tok_RETURN) &&
+        "this func should only receive return stmts"
+    );
+    return ret_stmt->token.literal;
+}
+
+void ast_free_ret_stmt(void *stmt) {
+    struct ast_Return_statement *ret_stmt = (struct ast_Return_statement *)stmt;
+    assert(
+        (ret_stmt->token.type == tok_RETURN) &&
+        "this func should only receive let stmts"
+    );
+    // free the expression in it
+    struct ast_Expression *exp = ret_stmt->ret_val;
+    // TODO: remove NULL check after implementing expression in return stmt
+    if (exp != NULL) {
+        exp->free_node(exp);
+    }
+
+    free(ret_stmt);
+}
+
+struct ast_Return_statement *ast_alloc_ret_stmt() {
+    struct ast_Return_statement *ret_stmt =
+        malloc(sizeof(struct ast_Return_statement));
+    // defaults
+    ret_stmt->token_literal = &ast_ret_stmt_tok_literal;
+    ret_stmt->free_node = &ast_free_ret_stmt;
+    ret_stmt->ret_val = NULL;
+    return ret_stmt;
 }
 
 // ---------------------- Expression
@@ -123,7 +164,7 @@ struct ast_Identifier {
 };
 
 // TODO: must be added to constructor of let_statement
-char *ast_Identifier_token_literal(void *exp) {
+char *ast_identifier_token_literal(void *exp) {
     struct ast_Identifier *ident = (struct ast_Identifier *)exp;
     assert(
         (ident->token.type == tok_IDENT) &&
@@ -134,6 +175,6 @@ char *ast_Identifier_token_literal(void *exp) {
 
 struct ast_Identifier *ast_alloc_identifier() {
     struct ast_Identifier *ident = malloc(1 * sizeof(struct ast_Identifier));
-    ident->token_literal = &ast_Let_statement_token_literal;
+    ident->token_literal = &ast_identifier_token_literal;
     return ident;
 }

@@ -5,7 +5,8 @@
 SUITE(lexer_suite);
 
 TEST lexer_test_next_token(void) {
-    char input[] = "let five = 5;\
+    char input[] = "\
+let five = 5;\
 let ten = 10;\
 \
 let add = fn(x, y) {\
