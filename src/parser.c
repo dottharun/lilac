@@ -5,7 +5,8 @@
 /*
 # Parser: Two types - Top down & Bottom up
 
-## Recursive Decent - going to be used in this interpreter is a Top down parser
+## Recursive Decent - going to be used in this interpreter is a Top down
+parser
 
 */
 
@@ -74,25 +75,30 @@ bool par_expect_peek(struct par_Parser *parser, enum tok_Type token_type) {
     }
 }
 
-struct ast_Let_statement *par_parse_let_statement(struct par_Parser *parser) {
-    struct ast_Let_statement *let_stmt = ast_alloc_let_stmt();
-    let_stmt->token = parser->curr_token;
+struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
+    struct ast_Stmt *stmt = ast_alloc_stmt(ast_LET_STMT);
+    stmt->token = parser->curr_token;
 
     // First there should be a identifier
     if (!par_expect_peek(parser, tok_IDENT)) {
-        free(let_stmt);
+        free(stmt);
         return NULL;
     }
 
     // alloc name
-    let_stmt->name = ast_alloc_identifier();
-    let_stmt->name->token = parser->curr_token;
-    strcpy(let_stmt->name->value, parser->curr_token.literal);
+    stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
+    assert(
+        stmt->data.let.name->tag == ast_IDENT_EXPR &&
+        "let stmts name should always be a identifier expression"
+    );
+
+    struct ast_Expr *let_ident = stmt->data.let.name;
+    let_ident->token = parser->curr_token;
+    strcpy(let_ident->data.ident.value, parser->curr_token.literal);
 
     // Then there should be a assign
     if (!par_expect_peek(parser, tok_ASSIGN)) {
-        free(let_stmt->name);
-        free(let_stmt);
+        ast_free_stmt(stmt);
         return NULL;
     }
 
@@ -101,12 +107,11 @@ struct ast_Let_statement *par_parse_let_statement(struct par_Parser *parser) {
         par_next_token(parser);
     }
 
-    return let_stmt;
+    return stmt;
 }
 
-struct ast_Return_statement *par_parse_ret_statement(struct par_Parser *parser
-) {
-    struct ast_Return_statement *ret_stmt = ast_alloc_ret_stmt();
+struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
+    struct ast_Stmt *ret_stmt = ast_alloc_stmt(ast_RET_STMT);
     ret_stmt->token = parser->curr_token;
 
     par_next_token(parser);
@@ -118,14 +123,14 @@ struct ast_Return_statement *par_parse_ret_statement(struct par_Parser *parser
     return ret_stmt;
 }
 
-struct ast_Statement *par_parse_statement(struct par_Parser *parser) {
-    struct ast_Statement *statement = NULL;
+struct ast_Stmt *par_parse_statement(struct par_Parser *parser) {
+    struct ast_Stmt *statement = NULL;
     switch (parser->curr_token.type) {
         case tok_LET:
-            statement = (struct ast_Statement *)par_parse_let_statement(parser);
+            statement = (struct ast_Stmt *)par_parse_let_statement(parser);
             break;
         case tok_RETURN:
-            statement = (struct ast_Statement *)par_parse_ret_statement(parser);
+            statement = (struct ast_Stmt *)par_parse_ret_statement(parser);
             break;
         default:
             // assert(0 && "should not be reached");
@@ -138,7 +143,7 @@ struct ast_Statement *par_parse_statement(struct par_Parser *parser) {
 
 void par_parse_program(struct par_Parser *parser, struct ast_Program *program) {
     while (parser->curr_token.type != tok_EOF) {
-        struct ast_Statement *statement = par_parse_statement(parser);
+        struct ast_Stmt *statement = par_parse_statement(parser);
         if (statement != NULL) {
             stbds_arrput(program->statement_ptrs_da, statement);
         }

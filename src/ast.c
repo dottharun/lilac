@@ -6,38 +6,112 @@
 #define STBDS_NO_SHORT_NAMES
 #include "stb_ds.h"
 
-// ------------------- Interfaces
+struct ast_Expr {
+    struct tok_Token token;
 
-// NOTE: be careful when passing statement ptrs - statements should never be
-// copied, only statement ptrs should be copied, since statements are always
-// casted from other structs with more data
+    enum ast_expr_tag {
+        ast_IDENT_EXPR,
+    } tag;
 
-#define NODE_INTERFACE \
-    char *(*token_literal)(void *); \
-    char *(*string)(); \
-    void (*free_node)(void *);
-
-#define STATEMENT_INTERFACE \
-    NODE_INTERFACE \
-    void (*statement_node)(); // FIXME: weirdly not used anywhere
-
-#define EXPRESSION_INTERFACE \
-    NODE_INTERFACE \
-    void (*expression_node)();
-
-struct ast_Statement {
-    STATEMENT_INTERFACE
+    union {
+        struct ast_Ident {
+            sstring value;
+        } ident;
+    } data;
 };
 
-struct ast_Expression {
-    EXPRESSION_INTERFACE
+// TODO: implement with expressions in ret statement
+void ast_free_expr(struct ast_Expr *expr) {
+    free(expr);
 };
+
+struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
+    struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
+    expr->tag = tag;
+
+    // TODO: implement for all exprs
+    switch (tag) {
+        case ast_IDENT_EXPR:
+            // NOTHING???
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+
+    return expr;
+}
+
+struct ast_Stmt {
+    struct tok_Token token;
+
+    enum ast_stmt_tag {
+        ast_LET_STMT,
+        ast_RET_STMT
+    } tag;
+
+    union {
+        struct ast_Let_stmt {
+            struct ast_Expr *name; // should always be identifier ast_IDENT_EXPR
+        } let;
+
+        struct ast_Ret_stmt {
+            struct ast_Expr *ret_val;
+        } ret;
+    } data;
+};
+
+void ast_free_stmt(struct ast_Stmt *stmt) {
+    // TODO: free every stmt correctly
+
+    // free all inside resources according to tag
+    switch (stmt->tag) {
+        case ast_LET_STMT:
+            // assert might not be needed
+            assert(
+                (stmt->data.let.name != NULL) &&
+                (stmt->data.let.name->tag == ast_IDENT_EXPR) &&
+                "let_stmt should have a identifier"
+            );
+            free(stmt->data.let.name);
+            break;
+        case ast_RET_STMT:
+            // TODO: remove NULL check after implementing expression in return
+            // stmt
+            if (stmt->data.ret.ret_val != NULL) {
+                ast_free_expr(stmt->data.ret.ret_val);
+            }
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+
+    free(stmt);
+}
+
+struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
+    struct ast_Stmt *stmt = malloc(sizeof(struct ast_Stmt));
+    stmt->tag = tag;
+
+    // TODO: implement for all stmts
+    switch (tag) {
+        case ast_LET_STMT:
+            stmt->data.let.name = NULL;
+            break;
+        case ast_RET_STMT:
+            stmt->data.ret.ret_val = NULL;
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+
+    return stmt;
+}
 
 // ---------------------- Program
 
 struct ast_Program {
     // dynamic array of statement_ptrs
-    struct ast_Statement **statement_ptrs_da;
+    struct ast_Stmt **statement_ptrs_da;
 };
 
 // must free after using
@@ -51,8 +125,8 @@ struct ast_Program *ast_alloc_program() {
 // FIXME: very weird code why only the first statements token literal
 char *ast_Program_token_literal(struct ast_Program *program) {
     if (stbds_arrlen(program->statement_ptrs_da) > 0) {
-        struct ast_Statement *stmt_ptr = program->statement_ptrs_da[0];
-        return (stmt_ptr->token_literal(stmt_ptr));
+        struct ast_Stmt *stmt_ptr = program->statement_ptrs_da[0];
+        return (stmt_ptr->token.literal);
     } else {
         return "";
     }
@@ -61,8 +135,8 @@ char *ast_Program_token_literal(struct ast_Program *program) {
 void ast_free_program(struct ast_Program *program) {
     // travel all statements and free each type of statement
     for (int i = 0; i < stbds_arrlen(program->statement_ptrs_da); ++i) {
-        struct ast_Statement *stmt = program->statement_ptrs_da[i];
-        stmt->free_node(stmt);
+        struct ast_Stmt *stmt = program->statement_ptrs_da[i];
+        ast_free_stmt(stmt);
     }
 
     // free statement_ptrs_da with stb
@@ -70,111 +144,4 @@ void ast_free_program(struct ast_Program *program) {
 
     // free program
     free(program);
-}
-
-// ---------------------- Statement
-
-struct ast_Let_statement {
-    STATEMENT_INTERFACE
-    struct tok_Token token;
-    struct ast_Identifier *name;
-};
-
-char *ast_let_statement_token_literal(void *stmt) {
-    struct ast_Let_statement *let_stmt = (struct ast_Let_statement *)stmt;
-    assert(
-        (let_stmt->token.type == tok_LET) &&
-        "this func should only receive let stmts"
-    );
-    return let_stmt->token.literal;
-}
-
-void ast_free_let_stmt(void *stmt) {
-    struct ast_Let_statement *let_stmt = (struct ast_Let_statement *)stmt;
-    assert(
-        (let_stmt->token.type == tok_LET) &&
-        "this func should only receive let stmts"
-    );
-
-    // free the identifier in it
-    assert((let_stmt->name != NULL) && "let_stmt should have a identifier");
-    free(let_stmt->name);
-
-    // free the stmt
-    free(let_stmt);
-}
-
-struct ast_Let_statement *ast_alloc_let_stmt() {
-    struct ast_Let_statement *let_stmt =
-        malloc(1 * sizeof(struct ast_Let_statement));
-    // defaults
-    let_stmt->token_literal = &ast_let_statement_token_literal;
-    let_stmt->free_node = &ast_free_let_stmt;
-    let_stmt->name = NULL;
-    return let_stmt;
-}
-
-struct ast_Return_statement {
-    STATEMENT_INTERFACE
-    struct tok_Token token;
-    struct ast_Expression *ret_val;
-};
-
-char *ast_ret_stmt_tok_literal(void *stmt) {
-    struct ast_Return_statement *ret_stmt = (struct ast_Return_statement *)stmt;
-    assert(
-        (ret_stmt->token.type == tok_RETURN) &&
-        "this func should only receive return stmts"
-    );
-    return ret_stmt->token.literal;
-}
-
-void ast_free_ret_stmt(void *stmt) {
-    struct ast_Return_statement *ret_stmt = (struct ast_Return_statement *)stmt;
-    assert(
-        (ret_stmt->token.type == tok_RETURN) &&
-        "this func should only receive let stmts"
-    );
-    // free the expression in it
-    struct ast_Expression *exp = ret_stmt->ret_val;
-    // TODO: remove NULL check after implementing expression in return stmt
-    if (exp != NULL) {
-        exp->free_node(exp);
-    }
-
-    free(ret_stmt);
-}
-
-struct ast_Return_statement *ast_alloc_ret_stmt() {
-    struct ast_Return_statement *ret_stmt =
-        malloc(sizeof(struct ast_Return_statement));
-    // defaults
-    ret_stmt->token_literal = &ast_ret_stmt_tok_literal;
-    ret_stmt->free_node = &ast_free_ret_stmt;
-    ret_stmt->ret_val = NULL;
-    return ret_stmt;
-}
-
-// ---------------------- Expression
-
-struct ast_Identifier {
-    EXPRESSION_INTERFACE
-    struct tok_Token token;
-    sstring value;
-};
-
-// TODO: must be added to constructor of let_statement
-char *ast_identifier_token_literal(void *exp) {
-    struct ast_Identifier *ident = (struct ast_Identifier *)exp;
-    assert(
-        (ident->token.type == tok_IDENT) &&
-        "this func should only receive identifiers"
-    );
-    return ident->token.literal;
-}
-
-struct ast_Identifier *ast_alloc_identifier() {
-    struct ast_Identifier *ident = malloc(1 * sizeof(struct ast_Identifier));
-    ident->token_literal = &ast_identifier_token_literal;
-    return ident;
 }

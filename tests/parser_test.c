@@ -4,16 +4,18 @@
 
 SUITE(parser_suite);
 
-bool test_let_statement(struct ast_Statement *statement, const char *name) {
-    ASSERT_STR_EQ(statement->token_literal(statement), "let");
+bool test_let_statement(struct ast_Stmt *statement, const char *name) {
+    ASSERT_STR_EQ(statement->token.literal, "let");
 
-    const struct ast_Let_statement *let_statement =
-        (struct ast_Let_statement *)statement;
-    ASSERT_NEQ(let_statement, NULL);
-    ASSERT_EQ(let_statement->token.type, tok_LET);
-    ASSERT_EQ(let_statement->name->value, name);
-    struct ast_Identifier *ident = let_statement->name;
-    ASSERT_EQ(ident->token_literal(ident), name);
+    const struct ast_Stmt *let_stmt = (struct ast_Stmt *)statement;
+    ASSERT_NEQ(let_stmt, NULL);
+    ASSERT_EQ(let_stmt->tag, ast_LET_STMT);
+    ASSERT_EQ(let_stmt->token.type, tok_LET);
+
+    struct ast_Expr *ident = let_stmt->data.let.name;
+    ASSERT_EQ(ident->tag, ast_IDENT_EXPR);
+    ASSERT_EQ(ident->data.ident.value, name);
+    ASSERT_EQ(ident->token.literal, name);
 
     return true;
 }
@@ -56,7 +58,8 @@ let foobar = 838383;";
 
     for (size_t i = 0; i < n; i++) {
         const char *expected_identifier = expected_identifiers[i];
-        struct ast_Statement *statement = program->statement_ptrs_da[i];
+        struct ast_Stmt *statement = program->statement_ptrs_da[i];
+        ASSERT(statement->tag == ast_LET_STMT);
         ASSERT_EQ(test_let_statement(statement, expected_identifier), true);
     }
 
@@ -84,11 +87,12 @@ return 993322;\
     int n = stbds_arrlen(program->statement_ptrs_da);
     ASSERT_EQ_FMT(3, n, "Received no of statement_ptrs: %d");
 
-    for (int i = 0; i < n; i++) {
-        struct ast_Return_statement *stmt =
-            (struct ast_Return_statement *)program->statement_ptrs_da[i];
+    for (int i = 0; i < 3; i++) {
+        struct ast_Stmt *stmt =
+            (struct ast_Stmt *)program->statement_ptrs_da[i];
         ASSERT(stmt != NULL);
-        ASSERT_STR_EQ("return", stmt->token_literal(stmt));
+        ASSERT(stmt->tag == ast_RET_STMT);
+        ASSERT_STR_EQ("return", stmt->token.literal);
     }
 
     par_free_parser(parser);
