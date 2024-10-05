@@ -65,6 +65,7 @@ bool par_peek_token_is(struct par_Parser *parser, enum tok_Type token_type) {
     return parser->peek_token.type == token_type;
 }
 
+// checks and moves if token is found
 bool par_expect_peek(struct par_Parser *parser, enum tok_Type token_type) {
     if (par_peek_token_is(parser, token_type)) {
         par_next_token(parser);

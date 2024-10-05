@@ -116,8 +116,7 @@ struct ast_Program {
 
 // must free after using
 struct ast_Program *ast_alloc_program() {
-    struct ast_Program *program =
-        (struct ast_Program *)malloc(1 * sizeof(struct ast_Program));
+    struct ast_Program *program = malloc(sizeof(struct ast_Program));
     program->statement_ptrs_da = NULL;
     return program;
 };
