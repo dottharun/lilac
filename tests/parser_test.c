@@ -4,18 +4,20 @@
 
 SUITE(parser_suite);
 
-bool test_let_statement(struct ast_Stmt *statement, const char *name) {
-    ASSERT_STR_EQ(statement->token.literal, "let");
+bool test_let_statement(struct ast_Stmt *let_stmt, const char *name) {
+    assert(let_stmt != NULL);
+    assert(let_stmt->tag == ast_LET_STMT);
 
-    const struct ast_Stmt *let_stmt = (struct ast_Stmt *)statement;
-    ASSERT_NEQ(let_stmt, NULL);
-    ASSERT_EQ(let_stmt->tag, ast_LET_STMT);
-    ASSERT_EQ(let_stmt->token.type, tok_LET);
+    assert(0 == strcmp(let_stmt->token.literal, "let"));
+    assert(let_stmt->token.type == tok_LET);
 
-    struct ast_Expr *ident = let_stmt->data.let.name;
-    ASSERT_EQ(ident->tag, ast_IDENT_EXPR);
-    ASSERT_EQ(ident->data.ident.value, name);
-    ASSERT_EQ(ident->token.literal, name);
+    struct ast_Expr *let_ident = let_stmt->data.let.name;
+    assert(let_ident->tag == ast_IDENT_EXPR);
+
+    assert(0 == strcmp(let_ident->data.ident.value, name));
+
+    assert(0 == strcmp(let_ident->token.literal, name));
+    assert(let_ident->token.type == tok_IDENT);
 
     return true;
 }
