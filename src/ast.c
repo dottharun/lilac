@@ -95,7 +95,7 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
     // TODO: implement for all stmts
     switch (tag) {
         case ast_LET_STMT:
-            stmt->data.let.name = NULL;
+            stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
             break;
         case ast_RET_STMT:
             stmt->data.ret.ret_val = NULL;

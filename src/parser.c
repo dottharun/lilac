@@ -82,16 +82,9 @@ struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
 
     // First there should be a identifier
     if (!par_expect_peek(parser, tok_IDENT)) {
-        free(stmt);
+        ast_free_stmt(stmt);
         return NULL;
     }
-
-    // alloc name
-    stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
-    assert(
-        stmt->data.let.name->tag == ast_IDENT_EXPR &&
-        "let stmts name should always be a identifier expression"
-    );
 
     struct ast_Expr *let_ident = stmt->data.let.name;
     let_ident->token = parser->curr_token;
