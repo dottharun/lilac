@@ -1,3 +1,5 @@
+#pragma once
+
 #include "malloc.h"
 #include "token.c"
 #include "util.c"
@@ -8,6 +10,9 @@
 
 #define GB_STRING_IMPLEMENTATION
 #include "gb_string.h"
+
+// ---------------------- Expression
+
 struct ast_Expr {
     struct tok_Token token;
 
@@ -43,22 +48,47 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
     return expr;
 }
 
+gbString ast_make_expr_str(struct ast_Expr *expr) {
+    gbString str = gb_make_string("");
+
+    switch (expr->tag) {
+        case ast_IDENT_EXPR:
+            // FIXME: could be made simpler with gbString?
+            str = gb_append_cstring(str, expr->data.ident.value);
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+
+    return str;
+}
+
+// ---------------------- Statement
+
 struct ast_Stmt {
     struct tok_Token token;
 
     enum ast_stmt_tag {
         ast_LET_STMT,
-        ast_RET_STMT
+        ast_RET_STMT,
+        ast_EXPR_STMT,
     } tag;
 
     union {
         struct ast_Let_stmt {
             struct ast_Expr *name; // should always be identifier ast_IDENT_EXPR
+
+            struct ast_Expr *value; // could be any expression
         } let;
 
         struct ast_Ret_stmt {
             struct ast_Expr *ret_val;
         } ret;
+
+        struct ast_Expr_stmt {
+            struct ast_Expr *expr;
+        } expr;
+
     } data;
 };
 
@@ -75,6 +105,7 @@ void ast_free_stmt(struct ast_Stmt *stmt) {
                 "let_stmt should have a identifier"
             );
             free(stmt->data.let.name);
+            free(stmt->data.let.value);
             break;
         case ast_RET_STMT:
             // TODO: remove NULL check after implementing expression in return
@@ -98,6 +129,7 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
     switch (tag) {
         case ast_LET_STMT:
             stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
+            stmt->data.let.value = NULL;
             break;
         case ast_RET_STMT:
             stmt->data.ret.ret_val = NULL;
@@ -107,6 +139,55 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
     }
 
     return stmt;
+}
+
+// free after using
+gbString ast_make_stmt_str(struct ast_Stmt *stmt) {
+    gbString str = gb_make_string("");
+
+    switch (stmt->tag) {
+        case ast_LET_STMT:
+            str = gb_append_cstring(str, stmt->token.literal);
+            str = gb_append_cstring(str, " ");
+
+            gbString expr = ast_make_expr_str(stmt->data.let.name);
+            str = gb_append_string(str, expr);
+            gb_free_string(expr);
+
+            str = gb_append_cstring(str, " = ");
+
+            if (stmt->data.let.value != NULL) {
+                gbString expr = ast_make_expr_str(stmt->data.let.value);
+                str = gb_append_string(str, expr);
+                gb_free_string(expr);
+            }
+
+            str = gb_append_cstring(str, ";");
+            break;
+        case ast_RET_STMT:
+            str = gb_append_cstring(str, stmt->token.literal);
+            str = gb_append_cstring(str, " ");
+
+            if (stmt->data.ret.ret_val != NULL) {
+                gbString expr = ast_make_expr_str(stmt->data.ret.ret_val);
+                str = gb_append_string(str, expr);
+                gb_free_string(expr);
+            }
+
+            str = gb_append_cstring(str, ";");
+            break;
+        case ast_EXPR_STMT:
+            if (stmt->data.expr.expr != NULL) {
+                gbString expr = ast_make_expr_str(stmt->data.expr.expr);
+                str = gb_append_string(str, expr);
+                gb_free_string(expr);
+            }
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+
+    return str;
 }
 
 // ---------------------- Program
@@ -145,4 +226,19 @@ void ast_free_program(struct ast_Program *program) {
 
     // free program
     free(program);
+}
+
+// free after using
+gbString ast_make_program_str(struct ast_Program *prg) {
+    gbString str = gb_make_string("");
+
+    int n = stbds_arrlen(prg->statement_ptrs_da);
+    for (int i = 0; i < n; ++i) {
+        gbString stmt_str = ast_make_stmt_str(prg->statement_ptrs_da[i]);
+        str = gb_append_string(str, stmt_str);
+
+        gb_free_string(stmt_str);
+    }
+
+    return str;
 }
