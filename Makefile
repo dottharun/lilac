@@ -34,7 +34,10 @@ stb:
 greatest:
 	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/silentbicycle/greatest/fbbf9818ec72578289716bf6002b11fd25185e02/greatest.h
 
-deps: greatest stb
+gb:
+	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/gingerBill/gb/fd88428545cac94db72e93a1ff36c27153628874/gb_string.h
+
+deps: greatest stb gb
 
 clean:
 	rm -rf $(OUTDIR)/*

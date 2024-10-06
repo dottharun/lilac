@@ -6,6 +6,8 @@
 #define STBDS_NO_SHORT_NAMES
 #include "stb_ds.h"
 
+#define GB_STRING_IMPLEMENTATION
+#include "gb_string.h"
 struct ast_Expr {
     struct tok_Token token;
 

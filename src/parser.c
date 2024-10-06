@@ -12,18 +12,18 @@ parser
 
 struct par_Parser {
     struct lex_Lexer *lexer;
-    char **errors_da; // dynamic arr of err_strings
+    gbString *errors_da; // dynamic arr of err_strings
     struct tok_Token curr_token;
     struct tok_Token peek_token;
 };
 
-char **par_parser_errors(struct par_Parser *parser) {
+gbString *par_parser_errors(struct par_Parser *parser) {
     return parser->errors_da;
 }
 
 // to add an error - when peek_token doesn't match any expectation
 void par_peek_error(struct par_Parser *parser, enum tok_Type token_type) {
-    char *msg = malloc(256 * sizeof(char));
+    char msg[256];
     int n = sprintf(
         msg,
         // SHORT_STRING_MAXLEN,
@@ -32,7 +32,9 @@ void par_peek_error(struct par_Parser *parser, enum tok_Type token_type) {
         tok_Token_int_enum_to_str((int)parser->peek_token.type)
     );
     assert(n < 256 && "string capacity will be exceeded");
-    stbds_arrput(parser->errors_da, msg);
+
+    gbString err_str = gb_make_string(msg);
+    stbds_arrput(parser->errors_da, err_str);
 }
 
 void par_next_token(struct par_Parser *parser) {
@@ -52,7 +54,7 @@ struct par_Parser *par_alloc_parser(struct lex_Lexer *lexer) {
 
 void par_free_parser(struct par_Parser *parser) {
     for (int i = 0; i < stbds_arrlen(parser->errors_da); ++i) {
-        free(parser->errors_da[i]);
+        gb_free_string(parser->errors_da[i]);
     }
     free(parser);
 }
