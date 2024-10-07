@@ -86,6 +86,18 @@ par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
             expr->token = parser->curr_token;
             strcpy(expr->data.ident.value, parser->curr_token.literal);
             break;
+        case tok_INT:
+            expr->tag = ast_INT_LIT_EXPR;
+            expr->token = parser->curr_token;
+
+            int err =
+                str_to_int(expr->token.literal, &expr->data.int_lit.value);
+            if (err != 0) {
+                gbString err_str =
+                    gb_make_string("String-to-Integer Conversion Error");
+                stbds_arrput(parser->errors_da, err_str);
+            }
+            break;
         default:
             assert(0 && "unreachable");
     }

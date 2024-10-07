@@ -18,12 +18,17 @@ struct ast_Expr {
 
     enum ast_expr_tag {
         ast_IDENT_EXPR,
+        ast_INT_LIT_EXPR,
     } tag;
 
     union {
         struct ast_Ident {
             sstring value;
         } ident;
+
+        struct ast_Int_lit {
+            int value;
+        } int_lit;
     } data;
 };
 
@@ -41,7 +46,10 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
         case ast_IDENT_EXPR:
             // NOTHING???
             break;
+        case ast_INT_LIT_EXPR:
+            break;
         default:
+            // FIXME: most of the cases are doing nothing, express it better.
             assert(0 && "unreachable");
     }
 

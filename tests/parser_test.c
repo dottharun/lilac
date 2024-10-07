@@ -124,8 +124,35 @@ TEST parser_test_identifier_expression(void) {
     ASSERT(stmt->tag == ast_EXPR_STMT);
     struct ast_Expr *ident_expr = stmt->data.expr.expr;
     ASSERT(ident_expr != NULL);
+    ASSERT(ident_expr->tag == ast_IDENT_EXPR);
     ASSERT_STR_EQ("foobar", ident_expr->data.ident.value);
     ASSERT_STR_EQ("foobar", ident_expr->token.literal);
+
+    PASS();
+}
+
+TEST parser_test_int_literal_expression(void) {
+    char input[] = "5;";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT(1, (int)stbds_arrlen(program->statement_ptrs_da), "%d");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+    // TODO: need to be replaced with int_literal
+    struct ast_Expr *int_lit_expr = stmt->data.expr.expr;
+    ASSERT(int_lit_expr != NULL);
+    ASSERT(int_lit_expr->tag == ast_INT_LIT_EXPR);
+    ASSERT_EQ_FMT(5, int_lit_expr->data.int_lit.value, "%d");
+    ASSERT_STR_EQ("5", int_lit_expr->token.literal);
 
     PASS();
 }
@@ -134,4 +161,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
     RUN_TEST(parser_test_identifier_expression);
+    RUN_TEST(parser_test_int_literal_expression);
 }
