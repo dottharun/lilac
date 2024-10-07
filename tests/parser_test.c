@@ -90,8 +90,7 @@ return 993322;\
     ASSERT_EQ_FMT(3, n, "Received no of statement_ptrs: %d");
 
     for (int i = 0; i < 3; i++) {
-        struct ast_Stmt *stmt =
-            (struct ast_Stmt *)program->statement_ptrs_da[i];
+        struct ast_Stmt *stmt = program->statement_ptrs_da[i];
         ASSERT(stmt != NULL);
         ASSERT(stmt->tag == ast_RET_STMT);
         ASSERT_STR_EQ("return", stmt->token.literal);
@@ -103,7 +102,36 @@ return 993322;\
     PASS();
 }
 
+TEST parser_test_identifier_expression(void) {
+    char input[] = "foobar;";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT(
+        1,
+        (int)stbds_arrlen(program->statement_ptrs_da),
+        "No of stmts - %d"
+    );
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+    struct ast_Expr *ident_expr = stmt->data.expr.expr;
+    ASSERT(ident_expr != NULL);
+    ASSERT_STR_EQ("foobar", ident_expr->data.ident.value);
+    ASSERT_STR_EQ("foobar", ident_expr->token.literal);
+
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
+    RUN_TEST(parser_test_identifier_expression);
 }

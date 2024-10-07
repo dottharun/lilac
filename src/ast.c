@@ -134,6 +134,9 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
         case ast_RET_STMT:
             stmt->data.ret.ret_val = NULL;
             break;
+        case ast_EXPR_STMT:
+            stmt->data.expr.expr = NULL;
+            break;
         default:
             assert(0 && "unreachable");
     }
