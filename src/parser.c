@@ -42,7 +42,7 @@ enum par_precedence par_curr_precedence(struct par_Parser *parser) {
     return prec_LOWEST;
 }
 
-bool par_is_prefix_fn_available(enum tok_Type type) {
+bool par_is_prefix_expr_parsable(enum tok_Type type) {
     static const bool valid_types[] = {
         [tok_IDENT] = true,    [tok_INT] = true,      [tok_STRING] = true,
         [tok_BANG] = true,     [tok_MINUS] = true,    [tok_TRUE] = true,
@@ -54,7 +54,7 @@ bool par_is_prefix_fn_available(enum tok_Type type) {
     return (type >= 0 && type < n) ? valid_types[type] : false;
 }
 
-bool par_is_infix_fn_available(enum tok_Type type) {
+bool par_is_infix_expr_parsable(enum tok_Type type) {
     static const bool valid_infix_types[] = {
         [tok_PLUS] = true,     [tok_MINUS] = true, [tok_SLASH] = true,
         [tok_ASTERISK] = true, [tok_EQ] = true,    [tok_NOT_EQ] = true,
@@ -66,9 +66,8 @@ bool par_is_infix_fn_available(enum tok_Type type) {
     return (type >= 0 && type < n) ? valid_infix_types[type] : false;
 }
 
-// TODO: rename to parse_prefix_expression as this does'nt provide any fn
 struct ast_Expr *
-par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
+par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
     struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
 
     switch (type) {
@@ -106,8 +105,7 @@ par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
     return expr;
 }
 
-// TODO: rename to parse_infix_expression as this does'nt provide any fn
-struct ast_Expr *par_infix_parse_fn(
+struct ast_Expr *par_parse_infix_expr(
     enum tok_Type type,
     struct par_Parser *parser,
     struct ast_Expr *left_expr
@@ -264,22 +262,22 @@ struct ast_Expr *par_parse_expression(
     struct par_Parser *parser,
     enum par_precedence precedence
 ) {
-    if (!par_is_prefix_fn_available(parser->curr_token.type)) {
+    if (!par_is_prefix_expr_parsable(parser->curr_token.type)) {
         par_no_prefix_parse_fn_error(parser, parser->curr_token.type);
         return NULL;
     }
     struct ast_Expr *left_expr =
-        par_prefix_parse_fn(parser->curr_token.type, parser);
+        par_parse_prefix_expr(parser->curr_token.type, parser);
 
     while (!par_peek_token_is(parser, tok_SEMICOLON) &&
            (precedence < par_peek_precedence(parser))) {
-        if (!par_is_infix_fn_available(parser->peek_token.type)) {
+        if (!par_is_infix_expr_parsable(parser->peek_token.type)) {
             return left_expr;
         }
 
         par_next_token(parser);
         left_expr =
-            par_infix_parse_fn(parser->curr_token.type, parser, left_expr);
+            par_parse_infix_expr(parser->curr_token.type, parser, left_expr);
     }
 
     return left_expr;
