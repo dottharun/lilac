@@ -19,6 +19,7 @@ struct ast_Expr {
     enum ast_expr_tag {
         ast_IDENT_EXPR,
         ast_INT_LIT_EXPR,
+        ast_PREFIX_EXPR,
     } tag;
 
     union {
@@ -29,6 +30,11 @@ struct ast_Expr {
         struct ast_Int_lit {
             int value;
         } int_lit;
+
+        struct ast_Prefix {
+            sstring operator;
+            struct ast_Expr *right;
+        } pf;
     } data;
 };
 
@@ -63,6 +69,12 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
         case ast_IDENT_EXPR:
             // FIXME: could be made simpler with gbString?
             str = gb_append_cstring(str, expr->data.ident.value);
+            break;
+        case ast_PREFIX_EXPR:
+            str = gb_append_cstring(str, "(");
+            str = gb_append_cstring(str, expr->data.pf.operator);
+            str = gb_append_string(str, ast_make_expr_str(expr->data.pf.right));
+            str = gb_append_cstring(str, ")");
             break;
         default:
             assert(0 && "unreachable");

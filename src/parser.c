@@ -1,6 +1,4 @@
-#include "ast.c"
-#include "lexer.c"
-#include "token.c"
+#include "parser.h"
 
 /*
 # Parser: Two types - Top down & Bottom up
@@ -10,27 +8,9 @@ parser
 
 */
 
-struct par_Parser {
-    struct lex_Lexer *lexer;
-    gbString *errors_da; // dynamic arr of err_strings
-    struct tok_Token curr_token;
-    struct tok_Token peek_token;
-};
-
 /*
 # Pratt Parsing
 */
-
-enum par_precedence {
-    prec_LOWEST = 1,
-    prec_EQUALS, // ==
-    prec_LESSGREATER, // > or <
-    prec_SUM, // +
-    prec_PRODUCT, // *
-    prec_PREFIX, // -X or !X
-    prec_CALL, // myFunction(X)
-    prec_INDEX,
-};
 
 static const enum par_precedence precedences[] = {
     [tok_EQ] = prec_EQUALS,      [tok_NOT_EQ] = prec_EQUALS,
@@ -97,6 +77,16 @@ par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
                     gb_make_string("String-to-Integer Conversion Error");
                 stbds_arrput(parser->errors_da, err_str);
             }
+            break;
+        // prefix expression
+        case tok_BANG:
+        case tok_MINUS:
+            expr->tag = ast_PREFIX_EXPR;
+            expr->token = parser->curr_token;
+            strcpy(expr->data.pf.operator, parser->curr_token.literal);
+
+            par_next_token(parser);
+            expr->data.pf.right = par_parse_expression(parser, prec_PREFIX);
             break;
         default:
             assert(0 && "unreachable");
@@ -207,16 +197,26 @@ struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
     return ret_stmt;
 }
 
+void par_no_prefix_parse_fn_error(
+    struct par_Parser *parser,
+    enum tok_Type token
+) {
+    gbString msg = gb_make_string("no prefix parse function for ");
+    msg = gb_append_cstring(msg, tok_Token_int_enum_to_str(token));
+    msg = gb_append_cstring(msg, " found");
+    stbds_arrput(parser->errors_da, msg);
+}
+
 struct ast_Expr *par_parse_expression(
     struct par_Parser *parser,
     enum par_precedence precedence
 ) {
     if (!par_is_prefix_fn_available(parser->curr_token.type)) {
+        par_no_prefix_parse_fn_error(parser, parser->curr_token.type);
         return NULL;
     }
     struct ast_Expr *left_expr =
         par_prefix_parse_fn(parser->curr_token.type, parser);
-
 
     return left_expr;
 }

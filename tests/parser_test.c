@@ -147,7 +147,6 @@ TEST parser_test_int_literal_expression(void) {
     ASSERT(stmt != NULL);
 
     ASSERT(stmt->tag == ast_EXPR_STMT);
-    // TODO: need to be replaced with int_literal
     struct ast_Expr *int_lit_expr = stmt->data.expr.expr;
     ASSERT(int_lit_expr != NULL);
     ASSERT(int_lit_expr->tag == ast_INT_LIT_EXPR);
@@ -157,9 +156,62 @@ TEST parser_test_int_literal_expression(void) {
     PASS();
 }
 
+bool test_int_literal(struct ast_Expr *il_expr, int val) {
+    assert(il_expr->tag == ast_INT_LIT_EXPR);
+    if (il_expr->data.int_lit.value != val) {
+        return false;
+    }
+
+    char str[32]; // for max_int
+    sprintf(str, "%d", val);
+    if (strcmp(str, il_expr->token.literal) != 0) {
+        return false;
+    }
+    return true;
+}
+
+TEST parser_test_prefix_expressions(void) {
+    struct {
+        char *input;
+        char *operator;
+        int int_val;
+    } prefix_tests[] = {
+        { "!5;", "!", 5 },
+        { "-15;", "-", 15 },
+    };
+
+    int n = sizeof(prefix_tests) / sizeof(prefix_tests[0]);
+
+    for (int i = 0; i < n; ++i) {
+        struct lex_Lexer lexer = lex_Lexer_create(prefix_tests[i].input);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
+        par_parse_program(parser, program);
+
+        ASSERT(check_parser_errors(parser) == false);
+        ASSERT(program != NULL);
+        ASSERT_EQ_FMT(1, (int)stbds_arrlen(program->statement_ptrs_da), "%d");
+
+        struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+        ASSERT(stmt != NULL);
+
+        ASSERT(stmt->tag == ast_EXPR_STMT);
+        struct ast_Expr *prefix_expr = stmt->data.expr.expr;
+        ASSERT(prefix_expr != NULL);
+        ASSERT(prefix_expr->tag == ast_PREFIX_EXPR);
+        ASSERT_STR_EQ(prefix_tests[i].operator, prefix_expr->data.pf.operator);
+        ASSERT(test_int_literal(
+            prefix_expr->data.pf.right,
+            prefix_tests[i].int_val
+        ));
+    }
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
     RUN_TEST(parser_test_identifier_expression);
     RUN_TEST(parser_test_int_literal_expression);
+    RUN_TEST(parser_test_prefix_expressions);
 }
