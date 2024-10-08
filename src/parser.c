@@ -12,6 +12,9 @@ parser
 # Pratt Parsing
 */
 
+/*
+ * Precendence level of different tokens
+ */
 static const enum par_precedence precedences[] = {
     [tok_EQ] = prec_EQUALS,      [tok_NOT_EQ] = prec_EQUALS,
     [tok_LT] = prec_LESSGREATER, [tok_GT] = prec_LESSGREATER,
@@ -27,6 +30,13 @@ bool par_is_token_in_precendences(enum tok_Type token) {
 
 enum par_precedence par_peek_precedence(struct par_Parser *parser) {
     if (par_is_token_in_precendences(parser->peek_token.type)) {
+        return precedences[parser->peek_token.type];
+    }
+    return prec_LOWEST;
+}
+
+enum par_precedence par_curr_precedence(struct par_Parser *parser) {
+    if (par_is_token_in_precendences(parser->curr_token.type)) {
         return precedences[parser->peek_token.type];
     }
     return prec_LOWEST;
@@ -56,6 +66,7 @@ bool par_is_infix_fn_available(enum tok_Type type) {
     return (type >= 0 && type < n) ? valid_infix_types[type] : false;
 }
 
+// TODO: rename to parse_prefix_expression as this does'nt provide any fn
 struct ast_Expr *
 par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
     struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
@@ -94,6 +105,48 @@ par_prefix_parse_fn(enum tok_Type type, struct par_Parser *parser) {
 
     return expr;
 }
+
+// TODO: rename to parse_infix_expression as this does'nt provide any fn
+struct ast_Expr *par_infix_parse_fn(
+    enum tok_Type type,
+    struct par_Parser *parser,
+    struct ast_Expr *left_expr
+) {
+    struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
+
+    switch (type) {
+        // infix expression
+        case tok_PLUS:
+        case tok_MINUS:
+        case tok_SLASH:
+        case tok_ASTERISK:
+        case tok_EQ:
+        case tok_NOT_EQ:
+        case tok_LT:
+        case tok_GT:
+            expr->tag = ast_INFIX_EXPR;
+            expr->token = parser->curr_token;
+            strcpy(expr->data.inf.operator, parser->curr_token.literal);
+            expr->data.inf.left = left_expr;
+
+            enum par_precedence precedence = par_curr_precedence(parser);
+            par_next_token(parser);
+            expr->data.inf.right = par_parse_expression(parser, precedence);
+
+            break;
+        case tok_LPAREN:
+            break;
+        case tok_LBRACKET:
+            break;
+        default:
+            assert(0 && "unreachable");
+            break;
+    }
+
+    return expr;
+}
+
+// -----------------------------
 
 gbString *par_parser_errors(struct par_Parser *parser) {
     return parser->errors_da;
@@ -217,6 +270,17 @@ struct ast_Expr *par_parse_expression(
     }
     struct ast_Expr *left_expr =
         par_prefix_parse_fn(parser->curr_token.type, parser);
+
+    while (!par_peek_token_is(parser, tok_SEMICOLON) &&
+           (precedence < par_peek_precedence(parser))) {
+        if (!par_is_infix_fn_available(parser->peek_token.type)) {
+            return left_expr;
+        }
+
+        par_next_token(parser);
+        left_expr =
+            par_infix_parse_fn(parser->curr_token.type, parser, left_expr);
+    }
 
     return left_expr;
 }

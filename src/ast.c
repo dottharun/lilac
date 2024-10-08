@@ -20,6 +20,7 @@ struct ast_Expr {
         ast_IDENT_EXPR,
         ast_INT_LIT_EXPR,
         ast_PREFIX_EXPR,
+        ast_INFIX_EXPR,
     } tag;
 
     union {
@@ -35,6 +36,12 @@ struct ast_Expr {
             sstring operator;
             struct ast_Expr *right;
         } pf;
+
+        struct ast_Infix {
+            struct ast_Expr *left;
+            sstring operator;
+            struct ast_Expr *right;
+        } inf;
     } data;
 };
 
@@ -74,6 +81,16 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             str = gb_append_cstring(str, "(");
             str = gb_append_cstring(str, expr->data.pf.operator);
             str = gb_append_string(str, ast_make_expr_str(expr->data.pf.right));
+            str = gb_append_cstring(str, ")");
+            break;
+        case ast_INFIX_EXPR:
+            str = gb_append_cstring(str, "(");
+            str = gb_append_string(str, ast_make_expr_str(expr->data.inf.left));
+            str = gb_append_cstring(str, " ");
+            str = gb_append_cstring(str, expr->data.pf.operator);
+            str = gb_append_cstring(str, " ");
+            str =
+                gb_append_string(str, ast_make_expr_str(expr->data.inf.right));
             str = gb_append_cstring(str, ")");
             break;
         default:

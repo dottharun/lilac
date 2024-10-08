@@ -208,10 +208,57 @@ TEST parser_test_prefix_expressions(void) {
     PASS();
 }
 
+TEST parser_test_infix_expressions(void) {
+    struct {
+        char *input;
+        int left_val;
+        char *operator;
+        int right_val;
+    } prefix_tests[] = {
+        { "5 + 5;", 5, "+", 5 },   { "5 - 5;", 5, "-", 5 },
+        { "5 * 5;", 5, "*", 5 },   { "5 / 5;", 5, "/", 5 },
+        { "5 > 5;", 5, ">", 5 },   { "5 < 5;", 5, "<", 5 },
+        { "5 == 5;", 5, "==", 5 }, { "5 != 5;", 5, "!=", 5 },
+    };
+
+    int n = sizeof(prefix_tests) / sizeof(prefix_tests[0]);
+
+    for (int i = 0; i < n; ++i) {
+        struct lex_Lexer lexer = lex_Lexer_create(prefix_tests[i].input);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
+        par_parse_program(parser, program);
+
+        ASSERT(check_parser_errors(parser) == false);
+        ASSERT(program != NULL);
+        ASSERT_EQ_FMT(1, (int)stbds_arrlen(program->statement_ptrs_da), "%d");
+
+        struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+        ASSERT(stmt != NULL);
+
+        ASSERT(stmt->tag == ast_EXPR_STMT);
+        struct ast_Expr *infix_expr = stmt->data.expr.expr;
+        ASSERT(infix_expr != NULL);
+
+        ASSERT(infix_expr->tag == ast_INFIX_EXPR);
+        ASSERT(test_int_literal(
+            infix_expr->data.inf.left,
+            prefix_tests[i].left_val
+        ));
+        ASSERT_STR_EQ(prefix_tests[i].operator, infix_expr->data.inf.operator);
+        ASSERT(test_int_literal(
+            infix_expr->data.inf.right,
+            prefix_tests[i].right_val
+        ));
+    }
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
     RUN_TEST(parser_test_identifier_expression);
     RUN_TEST(parser_test_int_literal_expression);
     RUN_TEST(parser_test_prefix_expressions);
+    RUN_TEST(parser_test_infix_expressions);
 }
