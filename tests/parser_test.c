@@ -128,6 +128,9 @@ TEST parser_test_identifier_expression(void) {
     ASSERT_STR_EQ("foobar", ident_expr->data.ident.value);
     ASSERT_STR_EQ("foobar", ident_expr->token.literal);
 
+    par_free_parser(parser);
+    ast_free_program(program);
+
     PASS();
 }
 
@@ -204,6 +207,9 @@ TEST parser_test_prefix_expressions(void) {
             prefix_expr->data.pf.right,
             prefix_tests[i].int_val
         ));
+
+        par_free_parser(parser);
+        ast_free_program(program);
     }
     PASS();
 }
@@ -250,6 +256,10 @@ TEST parser_test_infix_expressions(void) {
             infix_expr->data.inf.right,
             prefix_tests[i].right_val
         ));
+        par_free_parser(parser);
+        ast_free_program(program);
+        par_free_parser(parser);
+        ast_free_program(program);
     }
     PASS();
 }

@@ -47,6 +47,21 @@ struct ast_Expr {
 
 // TODO: implement with expressions in ret statement
 void ast_free_expr(struct ast_Expr *expr) {
+    switch (expr->tag) {
+        case ast_IDENT_EXPR:
+        case ast_INT_LIT_EXPR:
+            // NOTHING
+            break;
+        case ast_PREFIX_EXPR:
+            free(expr->data.pf.right);
+            break;
+        case ast_INFIX_EXPR:
+            free(expr->data.inf.left);
+            free(expr->data.inf.right);
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
     free(expr);
 };
 
@@ -54,15 +69,12 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
     struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
     expr->tag = tag;
 
-    // TODO: implement for all exprs
     switch (tag) {
         case ast_IDENT_EXPR:
+        case ast_INT_LIT_EXPR:
             // NOTHING???
             break;
-        case ast_INT_LIT_EXPR:
-            break;
         default:
-            // FIXME: most of the cases are doing nothing, express it better.
             assert(0 && "unreachable");
     }
 
@@ -133,9 +145,6 @@ struct ast_Stmt {
 };
 
 void ast_free_stmt(struct ast_Stmt *stmt) {
-    // TODO: free every stmt correctly
-
-    // free all inside resources according to tag
     switch (stmt->tag) {
         case ast_LET_STMT:
             // assert might not be needed
@@ -154,6 +163,9 @@ void ast_free_stmt(struct ast_Stmt *stmt) {
                 ast_free_expr(stmt->data.ret.ret_val);
             }
             break;
+        case ast_EXPR_STMT:
+            ast_free_expr(stmt->data.expr.expr);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -165,7 +177,6 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
     struct ast_Stmt *stmt = malloc(sizeof(struct ast_Stmt));
     stmt->tag = tag;
 
-    // TODO: implement for all stmts
     switch (tag) {
         case ast_LET_STMT:
             stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
