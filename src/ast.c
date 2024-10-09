@@ -77,6 +77,9 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             // FIXME: could be made simpler with gbString?
             str = gb_append_cstring(str, expr->data.ident.value);
             break;
+        case ast_INT_LIT_EXPR:
+            str = gb_append_cstring(str, expr->token.literal);
+            break;
         case ast_PREFIX_EXPR:
             str = gb_append_cstring(str, "(");
             str = gb_append_cstring(str, expr->data.pf.operator);
