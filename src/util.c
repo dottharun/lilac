@@ -4,6 +4,17 @@
 #include <inttypes.h>
 #include <limits.h>
 
+// deps -------------------------
+
+#define STB_DS_IMPLEMENTATION
+#define STBDS_NO_SHORT_NAMES
+#include "stb_ds.h"
+
+#define GB_STRING_IMPLEMENTATION
+#include "gb_string.h"
+
+// -------------------------
+
 #define SHORT_STRING_MAXLEN 1024
 
 typedef char sstring[SHORT_STRING_MAXLEN];

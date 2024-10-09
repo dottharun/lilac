@@ -1,5 +1,7 @@
 #include "parser.h"
 
+#include "parser_tracing.c"
+
 /*
 # Parser: Two types - Top down & Bottom up
 
@@ -68,6 +70,7 @@ bool par_is_infix_expr_parsable(enum tok_Type type) {
 
 struct ast_Expr *
 par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
     struct ast_Expr *left_expr = malloc(sizeof(struct ast_Expr));
 
     switch (type) {
@@ -113,6 +116,7 @@ struct ast_Expr *par_parse_infix_expr(
     struct par_Parser *parser,
     struct ast_Expr *left_expr
 ) {
+    TRACE_PARSER_FUNC;
     struct ast_Expr *res_left_expr = malloc(sizeof(struct ast_Expr));
 
     switch (type) {
@@ -215,6 +219,7 @@ bool par_expect_peek(struct par_Parser *parser, enum tok_Type token_type) {
 }
 
 struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
     struct ast_Stmt *stmt = ast_alloc_stmt(ast_LET_STMT);
     stmt->token = parser->curr_token;
 
@@ -243,6 +248,7 @@ struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
 }
 
 struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
     struct ast_Stmt *ret_stmt = ast_alloc_stmt(ast_RET_STMT);
     ret_stmt->token = parser->curr_token;
 
@@ -269,6 +275,7 @@ struct ast_Expr *par_parse_expression(
     struct par_Parser *parser,
     enum par_precedence precedence
 ) {
+    TRACE_PARSER_FUNC;
     if (!par_is_prefix_expr_parsable(parser->curr_token.type)) {
         par_no_prefix_parse_fn_error(parser, parser->curr_token.type);
         return NULL;
@@ -291,6 +298,7 @@ struct ast_Expr *par_parse_expression(
 }
 
 struct ast_Stmt *par_parse_expr_statement(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
     struct ast_Stmt *expr_stmt = ast_alloc_stmt(ast_EXPR_STMT);
     expr_stmt->token = parser->curr_token;
 
@@ -304,6 +312,7 @@ struct ast_Stmt *par_parse_expr_statement(struct par_Parser *parser) {
 }
 
 struct ast_Stmt *par_parse_statement(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
     struct ast_Stmt *statement = NULL;
     switch (parser->curr_token.type) {
         case tok_LET:
@@ -320,6 +329,7 @@ struct ast_Stmt *par_parse_statement(struct par_Parser *parser) {
 }
 
 void par_parse_program(struct par_Parser *parser, struct ast_Program *program) {
+    TRACE_PARSER_FUNC;
     while (parser->curr_token.type != tok_EOF) {
         struct ast_Stmt *statement = par_parse_statement(parser);
         if (statement != NULL) {

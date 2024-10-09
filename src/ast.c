@@ -4,13 +4,6 @@
 #include "token.c"
 #include "util.c"
 
-#define STB_DS_IMPLEMENTATION
-#define STBDS_NO_SHORT_NAMES
-#include "stb_ds.h"
-
-#define GB_STRING_IMPLEMENTATION
-#include "gb_string.h"
-
 // ---------------------- Expression
 
 struct ast_Expr {
