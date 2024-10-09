@@ -258,6 +258,50 @@ TEST parser_test_infix_expressions(void) {
         ));
         par_free_parser(parser);
         ast_free_program(program);
+    }
+    PASS();
+}
+
+TEST parser_test_operator_precedence_parsing(void) {
+    struct {
+        char *input;
+        char *expected;
+    } tests[] = {
+        { "-a * b", "((-a) * b)" },
+        { "!-a", "(!(-a))" },
+        { "a + b + c", "((a + b) + c)" },
+        { "a + b - c", "((a + b) - c)" },
+        { "a * b * c", "((a * b) * c)" },
+        { "a * b / c", "((a * b) / c)" },
+        { "a + b / c", "(a + (b / c))" },
+        { "a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)" },
+        { "3 + 4; -5 * 5", "(3 + 4)((-5) * 5)" },
+        { "5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))" },
+        { "5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))" },
+        { "3 + 4 * 5 == 3 * 1 + 4 * 5",
+          "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))" },
+        { "3 + 4 * 5 == 3 * 1 + 4 * 5",
+          "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))" },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+
+    for (int i = 0; i < n; ++i) {
+        struct lex_Lexer lexer = lex_Lexer_create(tests[i].input);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
+        par_parse_program(parser, program);
+
+        ASSERT(check_parser_errors(parser) == false);
+        ASSERT(program != NULL);
+
+        char *prg_str = ast_make_program_str(program);
+        ASSERT_STR_EQ(tests[i].expected, prg_str);
+
+        struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+        ASSERT(stmt != NULL);
+        ASSERT(stmt->tag == ast_EXPR_STMT);
+
         par_free_parser(parser);
         ast_free_program(program);
     }
@@ -271,4 +315,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_int_literal_expression);
     RUN_TEST(parser_test_prefix_expressions);
     RUN_TEST(parser_test_infix_expressions);
+    RUN_TEST(parser_test_operator_precedence_parsing);
 }
