@@ -4,6 +4,65 @@
 
 SUITE(parser_suite);
 
+bool test_identifier(struct ast_Expr *ident, const char *val) {
+    assert(ident != NULL);
+    assert(ident->tag == 2);
+    assert(strcmp(ident->data.ident.value, val) == 0);
+    assert(strcmp(ident->token.literal, val) == 0);
+    return true;
+}
+
+bool test_int_literal(struct ast_Expr *il_expr, int val) {
+    assert(il_expr->tag == ast_INT_LIT_EXPR);
+    if (il_expr->data.int_lit.value != val) {
+        return false;
+    }
+
+    char str[32]; // for max_int
+    sprintf(str, "%d", val);
+    if (strcmp(str, il_expr->token.literal) != 0) {
+        return false;
+    }
+    return true;
+}
+
+enum test_expected_type {
+    TEST_INT,
+    TEST_STRING,
+    TEST_BOOL
+};
+
+bool test_lit_expr(
+    struct ast_Expr *expr,
+    const void *val,
+    enum test_expected_type val_type
+) {
+    switch (val_type) {
+        case TEST_INT:
+            return test_int_literal(expr, *(int *)val);
+        case TEST_STRING:
+            return test_identifier(expr, (const char *)val);
+        default:
+            assert(0 && "unreachable");
+    }
+    return true;
+}
+
+bool test_infix_expr(
+    struct ast_Expr *inf_expr,
+    void *left,
+    enum test_expected_type left_type,
+    const char *operator,
+    void * right,
+    enum test_expected_type right_type
+) {
+    assert(inf_expr->tag == ast_INFIX_EXPR);
+    assert(test_lit_expr(inf_expr->data.inf.left, left, left_type));
+    assert(strcmp(inf_expr->data.inf.operator, operator) == 0);
+    assert(test_lit_expr(inf_expr->data.inf.right, right, right_type));
+    return true;
+}
+
 bool test_let_statement(struct ast_Stmt *let_stmt, const char *name) {
     assert(let_stmt != NULL);
     assert(let_stmt->tag == ast_LET_STMT);
@@ -159,20 +218,6 @@ TEST parser_test_int_literal_expression(void) {
     PASS();
 }
 
-bool test_int_literal(struct ast_Expr *il_expr, int val) {
-    assert(il_expr->tag == ast_INT_LIT_EXPR);
-    if (il_expr->data.int_lit.value != val) {
-        return false;
-    }
-
-    char str[32]; // for max_int
-    sprintf(str, "%d", val);
-    if (strcmp(str, il_expr->token.literal) != 0) {
-        return false;
-    }
-    return true;
-}
-
 TEST parser_test_prefix_expressions(void) {
     struct {
         char *input;
@@ -244,18 +289,16 @@ TEST parser_test_infix_expressions(void) {
 
         ASSERT(stmt->tag == ast_EXPR_STMT);
         struct ast_Expr *infix_expr = stmt->data.expr.expr;
-        ASSERT(infix_expr != NULL);
 
-        ASSERT(infix_expr->tag == ast_INFIX_EXPR);
-        ASSERT(test_int_literal(
-            infix_expr->data.inf.left,
-            prefix_tests[i].left_val
+        ASSERT(test_infix_expr(
+            infix_expr,
+            &prefix_tests[i].left_val,
+            TEST_INT,
+            prefix_tests[i].operator,
+            &prefix_tests[i].right_val,
+            TEST_INT
         ));
-        ASSERT_STR_EQ(prefix_tests[i].operator, infix_expr->data.inf.operator);
-        ASSERT(test_int_literal(
-            infix_expr->data.inf.right,
-            prefix_tests[i].right_val
-        ));
+
         par_free_parser(parser);
         ast_free_program(program);
     }
