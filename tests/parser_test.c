@@ -4,9 +4,25 @@
 
 SUITE(parser_suite);
 
+enum test_expected_type {
+    TEST_INT,
+    TEST_STRING,
+    TEST_BOOL
+};
+
+typedef struct {
+    enum test_expected_type type;
+
+    union {
+        sstring str;
+        int num;
+        bool flag;
+    };
+} expec_u;
+
 bool test_identifier(struct ast_Expr *ident, const char *val) {
     assert(ident != NULL);
-    assert(ident->tag == 2);
+    assert(ident->tag == ast_IDENT_EXPR);
     assert(strcmp(ident->data.ident.value, val) == 0);
     assert(strcmp(ident->token.literal, val) == 0);
     return true;
@@ -28,30 +44,20 @@ bool test_int_literal(struct ast_Expr *il_expr, int val) {
 
 bool test_bool_literal(struct ast_Expr *bool_expr, bool val) {
     assert(bool_expr != NULL);
-    assert(bool_expr->tag == as_BOOL_EXPR);
+    assert(bool_expr->tag == ast_BOOL_EXPR);
     assert(bool_expr->data.boolean.value == val);
     assert(strcmp(bool_expr->token.literal, (val ? "true" : "false")) == 0);
     return true;
 }
 
-enum test_expected_type {
-    TEST_INT,
-    TEST_STRING,
-    TEST_BOOL
-};
-
-bool test_lit_expr(
-    struct ast_Expr *expr,
-    const void *val,
-    enum test_expected_type val_type
-) {
-    switch (val_type) {
+bool test_lit_expr(struct ast_Expr *expr, expec_u val) {
+    switch (val.type) {
         case TEST_INT:
-            return test_int_literal(expr, *(int *)val);
+            return test_int_literal(expr, val.num);
         case TEST_STRING:
-            return test_identifier(expr, (const char *)val);
+            return test_identifier(expr, val.str);
         case TEST_BOOL:
-            return test_bool_literal(expr, *(bool *)val);
+            return test_bool_literal(expr, val.flag);
         default:
             assert(0 && "unreachable");
     }
@@ -60,16 +66,14 @@ bool test_lit_expr(
 
 bool test_infix_expr(
     struct ast_Expr *inf_expr,
-    void *left,
-    enum test_expected_type left_type,
+    expec_u left,
     const char *operator,
-    void * right,
-    enum test_expected_type right_type
+    expec_u right
 ) {
     assert(inf_expr->tag == ast_INFIX_EXPR);
-    assert(test_lit_expr(inf_expr->data.inf.left, left, left_type));
+    assert(test_lit_expr(inf_expr->data.inf.left, left));
     assert(strcmp(inf_expr->data.inf.operator, operator) == 0);
-    assert(test_lit_expr(inf_expr->data.inf.right, right, right_type));
+    assert(test_lit_expr(inf_expr->data.inf.right, right));
     return true;
 }
 
@@ -232,10 +236,14 @@ TEST parser_test_prefix_expressions(void) {
     struct {
         char *input;
         char *operator;
-        int int_val;
+        expec_u val;
     } prefix_tests[] = {
-        { "!5;", "!", 5 },
-        { "-15;", "-", 15 },
+        { "!5;", "!", { TEST_INT, .num = 5 } },
+        { "-15;", "-", { TEST_INT, .num = 15 } },
+        { "!foobar;", "!", { TEST_STRING, .str = "foobar" } },
+        { "-foobar;", "-", { TEST_STRING, .str = "foobar" } },
+        { "!true;", "!", { TEST_BOOL, .flag = true } },
+        { "!false;", "!", { TEST_BOOL, .flag = false } },
     };
 
     int n = sizeof(prefix_tests) / sizeof(prefix_tests[0]);
@@ -258,28 +266,52 @@ TEST parser_test_prefix_expressions(void) {
         ASSERT(prefix_expr != NULL);
         ASSERT(prefix_expr->tag == ast_PREFIX_EXPR);
         ASSERT_STR_EQ(prefix_tests[i].operator, prefix_expr->data.pf.operator);
-        ASSERT(test_int_literal(
-            prefix_expr->data.pf.right,
-            prefix_tests[i].int_val
-        ));
+        ASSERT(test_lit_expr(prefix_expr->data.pf.right, prefix_tests[i].val));
 
         par_free_parser(parser);
         ast_free_program(program);
     }
+
     PASS();
 }
+
+#define INFIX_INT_CASE(inp, x, op, y) \
+    { inp, { TEST_INT, { .num = x } }, op, { TEST_INT, { .num = y } } },
+
+#define INFIX_STR_CASE(inp, x, op, y) \
+    { inp, { TEST_STRING, { .str = x } }, op, { TEST_STRING, { .str = y } } },
+
+#define INFIX_BOOL_CASE(inp, x, op, y) \
+    { inp, { TEST_BOOL, { .flag = x } }, op, { TEST_BOOL, { .flag = y } } },
 
 TEST parser_test_infix_expressions(void) {
     struct {
         char *input;
-        int left_val;
+        expec_u left_val;
         char *operator;
-        int right_val;
+        expec_u right_val;
     } prefix_tests[] = {
-        { "5 + 5;", 5, "+", 5 },   { "5 - 5;", 5, "-", 5 },
-        { "5 * 5;", 5, "*", 5 },   { "5 / 5;", 5, "/", 5 },
-        { "5 > 5;", 5, ">", 5 },   { "5 < 5;", 5, "<", 5 },
-        { "5 == 5;", 5, "==", 5 }, { "5 != 5;", 5, "!=", 5 },
+        // clang-format off
+        INFIX_INT_CASE("5 + 5;", 5, "+", 5)
+        INFIX_INT_CASE("5 - 5;", 5, "-", 5)
+        INFIX_INT_CASE("5 * 5;", 5, "*", 5)
+        INFIX_INT_CASE("5 / 5;", 5, "/", 5)
+        INFIX_INT_CASE("5 > 5;", 5, ">", 5)
+        INFIX_INT_CASE("5 < 5;", 5, "<", 5)
+        INFIX_INT_CASE("5 == 5;", 5, "==", 5)
+        INFIX_INT_CASE("5 != 5;", 5, "!=", 5)
+        INFIX_STR_CASE("foobar + barfoo;", "foobar", "+", "barfoo")
+        INFIX_STR_CASE("foobar - barfoo;", "foobar", "-", "barfoo")
+        INFIX_STR_CASE("foobar * barfoo;", "foobar", "*", "barfoo")
+        INFIX_STR_CASE("foobar / barfoo;", "foobar", "/", "barfoo")
+        INFIX_STR_CASE("foobar > barfoo;", "foobar", ">", "barfoo")
+        INFIX_STR_CASE("foobar < barfoo;", "foobar", "<", "barfoo")
+        INFIX_STR_CASE("foobar == barfoo;", "foobar", "==", "barfoo")
+        INFIX_STR_CASE("foobar != barfoo;", "foobar", "!=", "barfoo")
+        INFIX_BOOL_CASE("true == true", true, "==", true)
+        INFIX_BOOL_CASE("true != false", true, "!=", false)
+        INFIX_BOOL_CASE("false == false", false, "==", false)
+        // clang-format on
     };
 
     int n = sizeof(prefix_tests) / sizeof(prefix_tests[0]);
@@ -302,11 +334,9 @@ TEST parser_test_infix_expressions(void) {
 
         ASSERT(test_infix_expr(
             infix_expr,
-            &prefix_tests[i].left_val,
-            TEST_INT,
+            prefix_tests[i].left_val,
             prefix_tests[i].operator,
-            &prefix_tests[i].right_val,
-            TEST_INT
+            prefix_tests[i].right_val
         ));
 
         par_free_parser(parser);
@@ -335,6 +365,10 @@ TEST parser_test_operator_precedence_parsing(void) {
           "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))" },
         { "3 + 4 * 5 == 3 * 1 + 4 * 5",
           "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))" },
+        { "true", "true" },
+        { "false", "false" },
+        { "3 > 5 == false", "((3 > 5) == false)" },
+        { "3 < 5 == true", "((3 < 5) == true)" },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -364,10 +398,10 @@ TEST parser_test_operator_precedence_parsing(void) {
 TEST parser_test_boolean_expr(void) {
     struct {
         char *input;
-        bool expected;
+        expec_u expected;
     } tests[] = {
-        { "true;", true },
-        { "false;", false },
+        { "true;", { TEST_BOOL, .flag = true } },
+        { "false;", { TEST_BOOL, .flag = false } },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -387,7 +421,7 @@ TEST parser_test_boolean_expr(void) {
         ASSERT(stmt->tag == ast_EXPR_STMT);
 
         struct ast_Expr *bool_expr = stmt->data.expr.expr;
-        ASSERT(test_lit_expr(bool_expr, &tests[i].expected, TEST_BOOL));
+        ASSERT(test_lit_expr(bool_expr, tests[i].expected));
 
         par_free_parser(parser);
         ast_free_program(program);

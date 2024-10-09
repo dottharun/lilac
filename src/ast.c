@@ -16,7 +16,7 @@ struct ast_Expr {
         ast_INT_LIT_EXPR,
         ast_PREFIX_EXPR,
         ast_INFIX_EXPR,
-        as_BOOL_EXPR
+        ast_BOOL_EXPR,
     } tag;
 
     union {
@@ -50,7 +50,7 @@ void ast_free_expr(struct ast_Expr *expr) {
     switch (expr->tag) {
         case ast_IDENT_EXPR:
         case ast_INT_LIT_EXPR:
-        case as_BOOL_EXPR:
+        case ast_BOOL_EXPR:
             // NOTHING
             break;
         case ast_PREFIX_EXPR:
@@ -73,7 +73,7 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
     switch (tag) {
         case ast_IDENT_EXPR:
         case ast_INT_LIT_EXPR:
-        case as_BOOL_EXPR:
+        case ast_BOOL_EXPR:
             // NOTHING???
             break;
         default:
@@ -92,7 +92,7 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             str = gb_append_cstring(str, expr->data.ident.value);
             break;
         case ast_INT_LIT_EXPR:
-        case as_BOOL_EXPR:
+        case ast_BOOL_EXPR:
             str = gb_append_cstring(str, expr->token.literal);
             break;
         case ast_PREFIX_EXPR:

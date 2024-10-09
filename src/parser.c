@@ -104,7 +104,7 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             break;
         case tok_TRUE:
         case tok_FALSE:
-            left_expr->tag = as_BOOL_EXPR;
+            left_expr->tag = ast_BOOL_EXPR;
             left_expr->data.boolean.value = par_curr_token_is(parser, tok_TRUE);
             break;
         default:
