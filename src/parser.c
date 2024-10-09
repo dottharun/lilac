@@ -107,8 +107,19 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             left_expr->tag = ast_BOOL_EXPR;
             left_expr->data.boolean.value = par_curr_token_is(parser, tok_TRUE);
             break;
+        // grouped expression
+        case tok_LPAREN:
+            par_next_token(parser);
+            left_expr = par_parse_expression(parser, prec_LOWEST);
+
+            if (!par_expect_peek(parser, tok_RPAREN)) {
+                ast_free_expr(left_expr);
+                left_expr = NULL;
+            }
+            break;
         default:
-            assert(0 && "unreachable");
+            par_no_prefix_parsing_err(parser, type);
+            // assert(0 && "unreachable");
     }
 
     return left_expr;
@@ -264,10 +275,7 @@ struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
     return ret_stmt;
 }
 
-void par_no_prefix_parse_fn_error(
-    struct par_Parser *parser,
-    enum tok_Type token
-) {
+void par_no_prefix_parsing_err(struct par_Parser *parser, enum tok_Type token) {
     gbString msg = gb_make_string("no prefix parse function for ");
     msg = gb_append_cstring(msg, tok_Token_int_enum_to_str(token));
     msg = gb_append_cstring(msg, " found");
@@ -280,7 +288,7 @@ struct ast_Expr *par_parse_expression(
 ) {
     TRACE_PARSER_FUNC;
     if (!par_is_prefix_expr_parsable(parser->curr_token.type)) {
-        par_no_prefix_parse_fn_error(parser, parser->curr_token.type);
+        par_no_prefix_parsing_err(parser, parser->curr_token.type);
         return NULL;
     }
     struct ast_Expr *left_expr =
