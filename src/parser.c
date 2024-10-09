@@ -68,20 +68,22 @@ bool par_is_infix_expr_parsable(enum tok_Type type) {
 
 struct ast_Expr *
 par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
-    struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
+    struct ast_Expr *left_expr = malloc(sizeof(struct ast_Expr));
 
     switch (type) {
         case tok_IDENT:
-            expr->tag = ast_IDENT_EXPR;
-            expr->token = parser->curr_token;
-            strcpy(expr->data.ident.value, parser->curr_token.literal);
+            left_expr->tag = ast_IDENT_EXPR;
+            left_expr->token = parser->curr_token;
+            strcpy(left_expr->data.ident.value, parser->curr_token.literal);
             break;
         case tok_INT:
-            expr->tag = ast_INT_LIT_EXPR;
-            expr->token = parser->curr_token;
+            left_expr->tag = ast_INT_LIT_EXPR;
+            left_expr->token = parser->curr_token;
 
-            int err =
-                str_to_int(expr->token.literal, &expr->data.int_lit.value);
+            int err = str_to_int(
+                left_expr->token.literal,
+                &left_expr->data.int_lit.value
+            );
             if (err != 0) {
                 gbString err_str =
                     gb_make_string("String-to-Integer Conversion Error");
@@ -91,18 +93,19 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
         // prefix expression
         case tok_BANG:
         case tok_MINUS:
-            expr->tag = ast_PREFIX_EXPR;
-            expr->token = parser->curr_token;
-            strcpy(expr->data.pf.operator, parser->curr_token.literal);
+            left_expr->tag = ast_PREFIX_EXPR;
+            left_expr->token = parser->curr_token;
+            strcpy(left_expr->data.pf.operator, parser->curr_token.literal);
 
             par_next_token(parser);
-            expr->data.pf.right = par_parse_expression(parser, prec_PREFIX);
+            left_expr->data.pf.right =
+                par_parse_expression(parser, prec_PREFIX);
             break;
         default:
             assert(0 && "unreachable");
     }
 
-    return expr;
+    return left_expr;
 }
 
 struct ast_Expr *par_parse_infix_expr(
@@ -110,7 +113,7 @@ struct ast_Expr *par_parse_infix_expr(
     struct par_Parser *parser,
     struct ast_Expr *left_expr
 ) {
-    struct ast_Expr *expr = malloc(sizeof(struct ast_Expr));
+    struct ast_Expr *res_left_expr = malloc(sizeof(struct ast_Expr));
 
     switch (type) {
         // infix expression
@@ -122,14 +125,18 @@ struct ast_Expr *par_parse_infix_expr(
         case tok_NOT_EQ:
         case tok_LT:
         case tok_GT:
-            expr->tag = ast_INFIX_EXPR;
-            expr->token = parser->curr_token;
-            strcpy(expr->data.inf.operator, parser->curr_token.literal);
-            expr->data.inf.left = left_expr;
+            res_left_expr->tag = ast_INFIX_EXPR;
+            res_left_expr->token = parser->curr_token;
+            strcpy(
+                res_left_expr->data.inf.operator,
+                parser->curr_token.literal
+            );
+            res_left_expr->data.inf.left = left_expr;
 
             enum par_precedence precedence = par_curr_precedence(parser);
             par_next_token(parser);
-            expr->data.inf.right = par_parse_expression(parser, precedence);
+            res_left_expr->data.inf.right =
+                par_parse_expression(parser, precedence);
 
             break;
         case tok_LPAREN:
@@ -141,7 +148,7 @@ struct ast_Expr *par_parse_infix_expr(
             break;
     }
 
-    return expr;
+    return res_left_expr;
 }
 
 // -----------------------------
