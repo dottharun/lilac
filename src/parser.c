@@ -72,16 +72,15 @@ struct ast_Expr *
 par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
     TRACE_PARSER_FUNC;
     struct ast_Expr *left_expr = malloc(sizeof(struct ast_Expr));
+    left_expr->token = parser->curr_token;
 
     switch (type) {
         case tok_IDENT:
             left_expr->tag = ast_IDENT_EXPR;
-            left_expr->token = parser->curr_token;
             strcpy(left_expr->data.ident.value, parser->curr_token.literal);
             break;
         case tok_INT:
             left_expr->tag = ast_INT_LIT_EXPR;
-            left_expr->token = parser->curr_token;
 
             int err = str_to_int(
                 left_expr->token.literal,
@@ -97,12 +96,16 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
         case tok_BANG:
         case tok_MINUS:
             left_expr->tag = ast_PREFIX_EXPR;
-            left_expr->token = parser->curr_token;
             strcpy(left_expr->data.pf.operator, parser->curr_token.literal);
 
             par_next_token(parser);
             left_expr->data.pf.right =
                 par_parse_expression(parser, prec_PREFIX);
+            break;
+        case tok_TRUE:
+        case tok_FALSE:
+            left_expr->tag = as_BOOL_EXPR;
+            left_expr->data.boolean.value = par_curr_token_is(parser, tok_TRUE);
             break;
         default:
             assert(0 && "unreachable");

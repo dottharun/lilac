@@ -24,3 +24,5 @@ enum par_precedence {
 
 struct ast_Expr *
 par_parse_expression(struct par_Parser *parser, enum par_precedence precedence);
+
+bool par_curr_token_is(struct par_Parser *parser, enum tok_Type token_type);
