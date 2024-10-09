@@ -87,7 +87,7 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             str = gb_append_cstring(str, "(");
             str = gb_append_string(str, ast_make_expr_str(expr->data.inf.left));
             str = gb_append_cstring(str, " ");
-            str = gb_append_cstring(str, expr->data.pf.operator);
+            str = gb_append_cstring(str, expr->data.inf.operator);
             str = gb_append_cstring(str, " ");
             str =
                 gb_append_string(str, ast_make_expr_str(expr->data.inf.right));

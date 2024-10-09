@@ -37,7 +37,7 @@ enum par_precedence par_peek_precedence(struct par_Parser *parser) {
 
 enum par_precedence par_curr_precedence(struct par_Parser *parser) {
     if (par_is_token_in_precendences(parser->curr_token.type)) {
-        return precedences[parser->peek_token.type];
+        return precedences[parser->curr_token.type];
     }
     return prec_LOWEST;
 }
