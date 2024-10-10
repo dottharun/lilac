@@ -435,6 +435,54 @@ TEST parser_test_boolean_expr(void) {
     PASS();
 }
 
+TEST parser_test_if_expr(void) {
+    char input[] = "if (x < y) { x }";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    // test cases
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    // since we consider `if` to be an expression
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *expr = stmt->data.expr.expr;
+    ASSERT(expr != NULL);
+    ASSERT(expr->tag == ast_IF_EXPR);
+
+    ASSERT(test_infix_expr(
+        expr->data.ife.cond,
+        (expec_u){ TEST_STRING, .str = "x" },
+        "<",
+        (expec_u){ TEST_STRING, .str = "y" }
+    ));
+
+    ASSERT_EQ_FMT(
+        (size_t)1,
+        stbds_arrlen(expr->data.ife.conseq->data.block.stmts_da),
+        "%lu"
+    );
+
+    struct ast_Stmt *conseq = expr->data.ife.conseq->data.block.stmts_da[0];
+    ASSERT(conseq != NULL);
+    ASSERT(conseq->tag == ast_EXPR_STMT);
+
+    ASSERT(test_identifier(conseq->data.expr.expr, "x"));
+    ASSERT(expr->data.ife.alt == NULL);
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -444,4 +492,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_infix_expressions);
     RUN_TEST(parser_test_operator_precedence_parsing);
     RUN_TEST(parser_test_boolean_expr);
+    RUN_TEST(parser_test_if_expr);
 }

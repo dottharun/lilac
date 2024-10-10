@@ -71,16 +71,17 @@ bool par_is_infix_expr_parsable(enum tok_Type type) {
 struct ast_Expr *
 par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
     TRACE_PARSER_FUNC;
-    struct ast_Expr *left_expr = malloc(sizeof(struct ast_Expr));
-    left_expr->token = parser->curr_token;
+    struct ast_Expr *left_expr = NULL;
 
     switch (type) {
         case tok_IDENT:
-            left_expr->tag = ast_IDENT_EXPR;
+            left_expr = ast_alloc_expr(ast_IDENT_EXPR);
+            left_expr->token = parser->curr_token;
             strcpy(left_expr->data.ident.value, parser->curr_token.literal);
             break;
         case tok_INT:
-            left_expr->tag = ast_INT_LIT_EXPR;
+            left_expr = ast_alloc_expr(ast_INT_LIT_EXPR);
+            left_expr->token = parser->curr_token;
 
             int err = str_to_int(
                 left_expr->token.literal,
@@ -95,7 +96,8 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
         // prefix expression
         case tok_BANG:
         case tok_MINUS:
-            left_expr->tag = ast_PREFIX_EXPR;
+            left_expr = ast_alloc_expr(ast_PREFIX_EXPR);
+            left_expr->token = parser->curr_token;
             strcpy(left_expr->data.pf.operator, parser->curr_token.literal);
 
             par_next_token(parser);
@@ -104,7 +106,8 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             break;
         case tok_TRUE:
         case tok_FALSE:
-            left_expr->tag = ast_BOOL_EXPR;
+            left_expr = ast_alloc_expr(ast_BOOL_EXPR);
+            left_expr->token = parser->curr_token;
             left_expr->data.boolean.value = par_curr_token_is(parser, tok_TRUE);
             break;
         // grouped expression
@@ -115,6 +118,42 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             if (!par_expect_peek(parser, tok_RPAREN)) {
                 ast_free_expr(left_expr);
                 left_expr = NULL;
+            }
+            break;
+        case tok_IF:
+            if (!par_expect_peek(parser, tok_LPAREN)) {
+                ast_free_expr(left_expr);
+                left_expr = NULL;
+                break;
+            }
+            par_next_token(parser);
+
+            left_expr = ast_alloc_expr(ast_IF_EXPR);
+            left_expr->token = parser->curr_token;
+            left_expr->data.ife.cond =
+                par_parse_expression(parser, prec_LOWEST);
+
+            if (!par_expect_peek(parser, tok_RPAREN) ||
+                !par_expect_peek(parser, tok_LBRACE)) {
+                ast_free_expr(left_expr);
+                left_expr = NULL;
+                break;
+            }
+
+            left_expr->data.ife.conseq = par_parse_block_stmt(parser);
+            assert(left_expr->data.ife.conseq->tag == ast_BLOCK_STMT);
+
+            if (par_peek_token_is(parser, tok_ELSE)) {
+                par_next_token(parser);
+
+                if (!par_expect_peek(parser, tok_LBRACE)) {
+                    ast_free_expr(left_expr);
+                    left_expr = NULL;
+                    break;
+                }
+
+                left_expr->data.ife.alt = par_parse_block_stmt(parser);
+                assert(left_expr->data.ife.alt->tag == ast_BLOCK_STMT);
             }
             break;
         default:
@@ -207,6 +246,8 @@ struct par_Parser *par_alloc_parser(struct lex_Lexer *lexer) {
 }
 
 void par_free_parser(struct par_Parser *parser) {
+    if (parser == NULL)
+        return;
     for (int i = 0; i < stbds_arrlen(parser->errors_da); ++i) {
         gb_free_string(parser->errors_da[i]);
     }
@@ -275,8 +316,26 @@ struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
     return ret_stmt;
 }
 
+struct ast_Stmt *par_parse_block_stmt(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
+    struct ast_Stmt *block = ast_alloc_stmt(ast_BLOCK_STMT);
+    block->token = parser->curr_token;
+
+    par_next_token(parser);
+
+    while (!par_curr_token_is(parser, tok_RBRACE) &&
+           !par_curr_token_is(parser, tok_EOF)) {
+        struct ast_Stmt *stmt = par_parse_statement(parser);
+        if (stmt != NULL) {
+            stbds_arrput(block->data.block.stmts_da, stmt);
+        }
+        par_next_token(parser);
+    }
+    return block;
+}
+
 void par_no_prefix_parsing_err(struct par_Parser *parser, enum tok_Type token) {
-    gbString msg = gb_make_string("no prefix parse function for ");
+    gbString msg = gb_make_string("No prefix parse function for ");
     msg = gb_append_cstring(msg, tok_Token_int_enum_to_str(token));
     msg = gb_append_cstring(msg, " found");
     stbds_arrput(parser->errors_da, msg);
