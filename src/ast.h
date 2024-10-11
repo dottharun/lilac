@@ -17,6 +17,7 @@ struct ast_Expr {
         ast_BOOL_EXPR,
         ast_IF_EXPR,
         ast_FN_LIT_EXPR,
+        ast_CALL_EXPR,
     } tag;
 
     union {
@@ -54,6 +55,12 @@ struct ast_Expr {
             struct ast_Expr **params_da;
             struct ast_Stmt *body; // always block stmts
         } fn_lit;
+
+        struct ast_Call {
+            struct ast_Expr *func; // identifier or function expr
+            // expr_ptrs da --not sure if its only identifiers or func exprs too
+            struct ast_Expr **args_da;
+        } call;
     } data;
 };
 

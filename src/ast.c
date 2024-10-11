@@ -33,6 +33,15 @@ void ast_free_expr(struct ast_Expr *expr) {
 
             ast_free_stmt(expr->data.fn_lit.body);
             break;
+        case ast_CALL_EXPR:
+            for (int i = 0; i < stbds_arrlen(expr->data.call.args_da); ++i) {
+                struct ast_Expr *arg = expr->data.call.args_da[i];
+                ast_free_expr(arg);
+            }
+            stbds_arrfree(expr->data.call.args_da);
+
+            ast_free_expr(expr->data.call.func);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -123,13 +132,33 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             for (int i = 0; i < stbds_arrlen(params); ++i) {
                 gbString param = ast_make_expr_str(params[i]);
                 str = gb_append_string(str, param);
-                str = gb_append_cstring(str, ", ");
                 gb_free_string(param);
+                if (i == stbds_arrlen(params) - 1) {
+                    break;
+                }
+                str = gb_append_cstring(str, ", ");
             }
             str = gb_append_cstring(str, ") ");
 
             gbString body = ast_make_stmt_str(expr->data.fn_lit.body);
             str = gb_append_string(str, body);
+            break;
+        case ast_CALL_EXPR:
+            str = gb_append_cstring(str, expr->data.call.func->token.literal);
+            str = gb_append_cstring(str, "(");
+
+            struct ast_Expr **args = expr->data.call.args_da;
+            for (int i = 0; i < stbds_arrlen(args); ++i) {
+                gbString arg = ast_make_expr_str(args[i]);
+                str = gb_append_string(str, arg);
+                gb_free_string(arg);
+                if (i == stbds_arrlen(args) - 1) {
+                    break;
+                }
+                str = gb_append_cstring(str, ", ");
+            }
+
+            str = gb_append_cstring(str, ")");
             break;
         default:
             assert(0 && "unreachable");

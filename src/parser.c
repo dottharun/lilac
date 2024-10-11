@@ -224,7 +224,14 @@ struct ast_Expr *par_parse_infix_expr(
                 par_parse_expression(parser, precedence);
 
             break;
+        // call expression
         case tok_LPAREN:
+            res_left_expr->tag = ast_CALL_EXPR;
+            res_left_expr->token = parser->curr_token;
+            res_left_expr->data.call.func = left_expr;
+
+            res_left_expr->data.call.args_da =
+                par_parse_expression_list(parser, tok_RPAREN);
             break;
         case tok_LBRACKET:
             break;
@@ -301,6 +308,35 @@ bool par_expect_peek(struct par_Parser *parser, enum tok_Type token_type) {
     }
 }
 
+struct ast_Expr **
+par_parse_expression_list(struct par_Parser *parser, enum tok_Type end) {
+    TRACE_PARSER_FUNC;
+    if (par_peek_token_is(parser, end)) {
+        par_next_token(parser);
+        return NULL;
+    }
+
+    par_next_token(parser);
+    struct ast_Expr **list = NULL;
+    stbds_arrput(list, par_parse_expression(parser, prec_LOWEST));
+
+    while (par_peek_token_is(parser, tok_COMMA)) {
+        par_next_token(parser);
+        par_next_token(parser);
+        stbds_arrput(list, par_parse_expression(parser, prec_LOWEST));
+    }
+
+    if (!par_expect_peek(parser, end)) {
+        for (int i = 0; i < stbds_arrlen(list); ++i) {
+            ast_free_expr(list[i]);
+        }
+        stbds_arrfree(list);
+        return NULL;
+    }
+
+    return list;
+}
+
 struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
     TRACE_PARSER_FUNC;
     struct ast_Stmt *stmt = ast_alloc_stmt(ast_LET_STMT);
@@ -352,7 +388,7 @@ struct ast_Expr **par_parse_fn_params(struct par_Parser *parser) {
         return NULL;
     }
     par_next_token(parser);
-    // not curr_token is ident x
+    // now curr_token is ident x
 
     struct ast_Expr **param_identifiers = NULL;
 

@@ -375,6 +375,11 @@ TEST parser_test_operator_precedence_parsing(void) {
         { "(5 + 5) * 2 * (5 + 5)", "(((5 + 5) * 2) * (5 + 5))" },
         { "-(5 + 5)", "(-(5 + 5))" },
         { "!(true == true)", "(!(true == true))" },
+        { "a + add(b * c) + d", "((a + add((b * c))) + d)" },
+        { "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+          "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))" },
+        { "add(a + b + c * d / f + g)",
+          "add((((a + b) + ((c * d) / f)) + g))" },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -583,6 +588,50 @@ TEST parser_test_fn_param_parsing(void) {
     PASS();
 }
 
+TEST parser_test_call_expr(void) {
+    char input[] = "add(1, 2 * 3, 4 + 5);";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *call_expr = stmt->data.expr.expr;
+    ASSERT(call_expr != NULL);
+    ASSERT(call_expr->tag == ast_CALL_EXPR);
+
+    ASSERT(test_identifier(call_expr->data.call.func, "add"));
+    ASSERT_EQ_FMT((size_t)3, stbds_arrlen(call_expr->data.call.args_da), "%lu");
+
+    ASSERT(test_lit_expr(
+        call_expr->data.call.args_da[0],
+        (expec_u){ TEST_INT, .num = 1 }
+    ));
+    ASSERT(test_infix_expr(
+        call_expr->data.call.args_da[1],
+        (expec_u){ TEST_INT, .num = 2 },
+        "*",
+        (expec_u){ TEST_INT, .num = 3 }
+    ));
+    ASSERT(test_infix_expr(
+        call_expr->data.call.args_da[2],
+        (expec_u){ TEST_INT, .num = 4 },
+        "+",
+        (expec_u){ TEST_INT, .num = 5 }
+    ));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -595,4 +644,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_if_expr);
     RUN_TEST(parser_test_fn_literal_expr);
     RUN_TEST(parser_test_fn_param_parsing);
+    RUN_TEST(parser_test_call_expr);
 }
