@@ -348,18 +348,20 @@ struct ast_Stmt *par_parse_let_statement(struct par_Parser *parser) {
         return NULL;
     }
 
-    struct ast_Expr *let_ident = stmt->data.let.name;
-    let_ident->token = parser->curr_token;
-    strcpy(let_ident->data.ident.value, parser->curr_token.literal);
+    stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
+    stmt->data.let.name->token = parser->curr_token;
+    strcpy(stmt->data.let.name->data.ident.value, parser->curr_token.literal);
 
     // Then there should be a assign
     if (!par_expect_peek(parser, tok_ASSIGN)) {
         ast_free_stmt(stmt);
         return NULL;
     }
+    par_next_token(parser);
 
-    // TODO: We're skipping the expressions until we encounter a semicolon
-    while (!par_curr_token_is(parser, tok_SEMICOLON)) {
+    stmt->data.let.value = par_parse_expression(parser, prec_LOWEST);
+
+    if (par_peek_token_is(parser, tok_SEMICOLON)) {
         par_next_token(parser);
     }
 
@@ -373,8 +375,9 @@ struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
 
     par_next_token(parser);
 
-    // TODO: We're skipping the expressions until we encounter a semicolon
-    while (!par_curr_token_is(parser, tok_SEMICOLON)) {
+    ret_stmt->data.ret.ret_val = par_parse_expression(parser, prec_LOWEST);
+
+    if (par_peek_token_is(parser, tok_SEMICOLON)) {
         par_next_token(parser);
     }
     return ret_stmt;

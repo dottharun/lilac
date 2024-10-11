@@ -1,7 +1,6 @@
 #pragma once
 #include "ast.h"
 
-// TODO: implement with expressions in ret statement
 void ast_free_expr(struct ast_Expr *expr) {
     if (expr == NULL)
         return;
@@ -173,21 +172,17 @@ void ast_free_stmt(struct ast_Stmt *stmt) {
 
     switch (stmt->tag) {
         case ast_LET_STMT:
-            // assert might not be needed
+            // FIXME: assert might not be needed
             assert(
                 (stmt->data.let.name != NULL) &&
                 (stmt->data.let.name->tag == ast_IDENT_EXPR) &&
                 "let_stmt should have a identifier"
             );
-            free(stmt->data.let.name);
-            free(stmt->data.let.value);
+            ast_free_expr(stmt->data.let.name);
+            ast_free_expr(stmt->data.let.value);
             break;
         case ast_RET_STMT:
-            // TODO: remove NULL check after implementing expression in return
-            // stmt
-            if (stmt->data.ret.ret_val != NULL) {
-                ast_free_expr(stmt->data.ret.ret_val);
-            }
+            ast_free_expr(stmt->data.ret.ret_val);
             break;
         case ast_EXPR_STMT:
             ast_free_expr(stmt->data.expr.expr);
@@ -212,7 +207,7 @@ struct ast_Stmt *ast_alloc_stmt(enum ast_stmt_tag tag) {
 
     switch (tag) {
         case ast_LET_STMT:
-            stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
+            stmt->data.let.name = NULL;
             stmt->data.let.value = NULL;
             break;
         case ast_RET_STMT:

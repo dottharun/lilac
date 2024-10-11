@@ -112,35 +112,37 @@ bool check_parser_errors(struct par_Parser *parser) {
 }
 
 TEST parser_test_let_statement(void) {
-    char input[] = "\
-let x = 5;\
-let y = 10;\
-let foobar = 838383;";
+    struct {
+        char *input;
+        char expec_ident[6];
+        expec_u expec_val;
+    } tests[] = {
+        { "let x = 5;", "x", { TEST_INT, .num = 5 } },
+        { "let y = true;", "y", { TEST_BOOL, .flag = true } },
+        { "let foobar = y;", "foobar", { TEST_STRING, .str = "y" } },
+    };
 
-    struct lex_Lexer lexer = lex_Lexer_create(input);
-    struct par_Parser *parser = par_alloc_parser(&lexer);
+    int n = sizeof(tests) / sizeof(tests[0]);
 
-    struct ast_Program *program = ast_alloc_program();
-    par_parse_program(parser, program);
+    for (int i = 0; i < n; ++i) {
+        struct lex_Lexer lexer = lex_Lexer_create(tests[i].input);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
 
-    ASSERT(check_parser_errors(parser) == false);
-    ASSERT(program != NULL);
-    ASSERT_EQ_FMT((size_t)3, stbds_arrlen(program->statement_ptrs_da), "%lu");
+        par_parse_program(parser, program);
+        ASSERT(check_parser_errors(parser) == false);
+        ASSERT(program != NULL);
+        ASSERT_EQ_FMT(1, (int)stbds_arrlen(program->statement_ptrs_da), "%d");
 
-    char *expected_identifiers[] = { "x", "y", "foobar" };
-    const size_t n =
-        sizeof(expected_identifiers) / sizeof(expected_identifiers[0]);
+        struct ast_Stmt *let_stmt = program->statement_ptrs_da[0];
+        ASSERT(test_let_statement(let_stmt, tests[i].expec_ident));
 
-    for (size_t i = 0; i < n; i++) {
-        const char *expected_identifier = expected_identifiers[i];
-        struct ast_Stmt *statement = program->statement_ptrs_da[i];
-        ASSERT(statement->tag == ast_LET_STMT);
-        ASSERT_EQ(test_let_statement(statement, expected_identifier), true);
+        struct ast_Expr *val = let_stmt->data.let.value;
+        ASSERT(test_lit_expr(val, tests[i].expec_val));
+
+        par_free_parser(parser);
+        ast_free_program(program);
     }
-
-    par_free_parser(parser);
-    ast_free_program(program);
-
     PASS();
 }
 

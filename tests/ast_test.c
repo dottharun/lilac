@@ -10,6 +10,7 @@ TEST ast_test_program_string(void) {
     let_stmt->token.type = tok_LET;
     strcpy(let_stmt->token.literal, "let");
 
+    let_stmt->data.let.name = ast_alloc_expr(ast_IDENT_EXPR);
     let_stmt->data.let.name->token.type = tok_IDENT;
     strcpy(let_stmt->data.let.name->token.literal, "myVar");
     strcpy(let_stmt->data.let.name->data.ident.value, "myVar");
