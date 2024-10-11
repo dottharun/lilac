@@ -15,7 +15,8 @@ struct ast_Expr {
         ast_PREFIX_EXPR,
         ast_INFIX_EXPR,
         ast_BOOL_EXPR,
-        ast_IF_EXPR
+        ast_IF_EXPR,
+        ast_FN_LIT_EXPR,
     } tag;
 
     union {
@@ -47,6 +48,12 @@ struct ast_Expr {
             struct ast_Stmt *conseq; // Consequence - always block stmt
             struct ast_Stmt *alt; // Alternative - always block stmt
         } ife;
+
+        struct ast_Fn_lit {
+            // dyn arr of identifier_ptrs -- always identifier expressions
+            struct ast_Expr **params_da;
+            struct ast_Stmt *body; // always block stmts
+        } fn_lit;
     } data;
 };
 

@@ -14,7 +14,7 @@ typedef struct {
     enum test_expected_type type;
 
     union {
-        sstring str;
+        char *str;
         int num;
         bool flag;
     };
@@ -483,6 +483,106 @@ TEST parser_test_if_expr(void) {
     PASS();
 }
 
+TEST parser_test_fn_literal_expr(void) {
+    char input[] = "fn(x, y) { x + y; }";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *fn_expr = stmt->data.expr.expr;
+    ASSERT(fn_expr != NULL);
+    ASSERT(fn_expr->tag == ast_FN_LIT_EXPR);
+    ASSERT_EQ_FMT(
+        (size_t)2,
+        stbds_arrlen(fn_expr->data.fn_lit.params_da),
+        "%lu"
+    );
+
+    ASSERT(test_lit_expr(
+        fn_expr->data.fn_lit.params_da[0],
+        (expec_u){ TEST_STRING, .str = "x" }
+    ));
+    ASSERT(test_lit_expr(
+        fn_expr->data.fn_lit.params_da[1],
+        (expec_u){ TEST_STRING, .str = "y" }
+    ));
+
+    ASSERT(fn_expr->data.fn_lit.body->tag == ast_BLOCK_STMT);
+    ASSERT_EQ_FMT(
+        (size_t)1,
+        stbds_arrlen(fn_expr->data.fn_lit.body->data.block.stmts_da),
+        "%lu"
+    );
+
+    struct ast_Stmt *body_stmt =
+        fn_expr->data.fn_lit.body->data.block.stmts_da[0];
+    ASSERT(body_stmt != NULL);
+    ASSERT(body_stmt->tag == ast_EXPR_STMT);
+    ASSERT(test_infix_expr(
+        body_stmt->data.expr.expr,
+        (expec_u){ TEST_STRING, .str = "x" },
+        "+",
+        (expec_u){ TEST_STRING, .str = "y" }
+    ));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
+TEST parser_test_fn_param_parsing(void) {
+    struct {
+        char *input;
+        char *expected_params[3];
+        int param_count;
+    } tests[] = {
+        { "fn() {};", {}, 0 },
+        { "fn(x) {};", { "x" }, 1 },
+        { "fn(x, y, z) {};", { "x", "y", "z" }, 3 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+
+    for (int i = 0; i < n; ++i) {
+        struct lex_Lexer lexer = lex_Lexer_create(tests[i].input);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
+
+        par_parse_program(parser, program);
+        ASSERT(check_parser_errors(parser) == false);
+        ASSERT(program != NULL);
+        ASSERT_EQ_FMT(1, (int)stbds_arrlen(program->statement_ptrs_da), "%d");
+
+        struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+        ASSERT(stmt != NULL);
+        ASSERT(stmt->tag == ast_EXPR_STMT);
+
+        struct ast_Expr *fn_expr = stmt->data.expr.expr;
+        int m = stbds_arrlen(fn_expr->data.fn_lit.params_da);
+        ASSERT_EQ(tests[i].param_count, m);
+
+        for (int j = 0; j < m; ++j) {
+            ASSERT(test_lit_expr(
+                fn_expr->data.fn_lit.params_da[j],
+                (expec_u){ TEST_STRING, .str = tests[i].expected_params[j] }
+            ));
+        }
+
+        par_free_parser(parser);
+        ast_free_program(program);
+    }
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -493,4 +593,6 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_operator_precedence_parsing);
     RUN_TEST(parser_test_boolean_expr);
     RUN_TEST(parser_test_if_expr);
+    RUN_TEST(parser_test_fn_literal_expr);
+    RUN_TEST(parser_test_fn_param_parsing);
 }

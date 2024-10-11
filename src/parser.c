@@ -156,6 +156,34 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
                 assert(left_expr->data.ife.alt->tag == ast_BLOCK_STMT);
             }
             break;
+        case tok_FUNCTION:
+            /*
+             * # Function Parsing:
+             * ## function structure: fn <parameters> <block statement>
+             * ### parameters structure:
+             *     (<parameter one>, <parameter two>, <parameter three>, ...)
+             */
+            left_expr = ast_alloc_expr(ast_FN_LIT_EXPR);
+            left_expr->token = parser->curr_token;
+
+            if (!par_expect_peek(parser, tok_LPAREN)) {
+                ast_free_expr(left_expr);
+                left_expr = NULL;
+                break;
+            }
+
+            left_expr->data.fn_lit.params_da = par_parse_fn_params(parser);
+
+            if (!par_expect_peek(parser, tok_LBRACE)) {
+                ast_free_expr(left_expr);
+                left_expr = NULL;
+                break;
+            }
+
+            left_expr->data.fn_lit.body = par_parse_block_stmt(parser);
+
+            assert(left_expr->data.fn_lit.body->tag == ast_BLOCK_STMT);
+            break;
         default:
             par_no_prefix_parsing_err(parser, type);
             // assert(0 && "unreachable");
@@ -314,6 +342,42 @@ struct ast_Stmt *par_parse_ret_statement(struct par_Parser *parser) {
         par_next_token(parser);
     }
     return ret_stmt;
+}
+
+struct ast_Expr **par_parse_fn_params(struct par_Parser *parser) {
+    TRACE_PARSER_FUNC;
+
+    if (par_peek_token_is(parser, tok_RPAREN)) {
+        par_next_token(parser);
+        return NULL;
+    }
+    par_next_token(parser);
+    // not curr_token is ident x
+
+    struct ast_Expr **param_identifiers = NULL;
+
+    while (!par_curr_token_is(parser, tok_RPAREN)) {
+        struct ast_Expr *ident = ast_alloc_expr(ast_IDENT_EXPR);
+        ident->token = parser->curr_token;
+        strcpy(ident->data.ident.value, parser->curr_token.literal);
+
+        stbds_arrput(param_identifiers, ident);
+        par_next_token(parser);
+
+        if (par_curr_token_is(parser, tok_COMMA)) {
+            par_next_token(parser);
+        } else if (par_curr_token_is(parser, tok_RPAREN)) {
+            break;
+        } else {
+            for (int i = 0; i < stbds_arrlen(param_identifiers); ++i) {
+                ast_free_expr(param_identifiers[i]);
+            }
+            stbds_arrfree(param_identifiers);
+            return NULL;
+        }
+    }
+
+    return param_identifiers;
 }
 
 struct ast_Stmt *par_parse_block_stmt(struct par_Parser *parser) {

@@ -29,6 +29,8 @@ struct ast_Stmt *par_parse_statement(struct par_Parser *parser);
 
 struct ast_Stmt *par_parse_block_stmt(struct par_Parser *parser);
 
+struct ast_Expr **par_parse_fn_params(struct par_Parser *parser);
+
 bool par_curr_token_is(struct par_Parser *parser, enum tok_Type token_type);
 
 void par_no_prefix_parsing_err(struct par_Parser *parser, enum tok_Type token);

@@ -23,6 +23,16 @@ void ast_free_expr(struct ast_Expr *expr) {
             ast_free_stmt(expr->data.ife.conseq);
             ast_free_stmt(expr->data.ife.alt);
             break;
+        case ast_FN_LIT_EXPR:
+            for (int i = 0; i < stbds_arrlen(expr->data.fn_lit.params_da);
+                 ++i) {
+                struct ast_Expr *param = expr->data.fn_lit.params_da[i];
+                ast_free_expr(param);
+            }
+            stbds_arrfree(expr->data.fn_lit.params_da);
+
+            ast_free_stmt(expr->data.fn_lit.body);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -50,6 +60,10 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
             expr->data.ife.cond = NULL;
             expr->data.ife.conseq = NULL;
             expr->data.ife.alt = NULL;
+            break;
+        case ast_FN_LIT_EXPR:
+            expr->data.fn_lit.params_da = NULL;
+            expr->data.fn_lit.body = NULL;
             break;
         default:
             assert(0 && "unreachable");
@@ -100,6 +114,22 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
                     ast_make_stmt_str(expr->data.ife.alt)
                 );
             }
+            break;
+        case ast_FN_LIT_EXPR:
+            str = gb_append_cstring(str, expr->token.literal);
+
+            str = gb_append_cstring(str, "(");
+            struct ast_Expr **params = expr->data.fn_lit.params_da;
+            for (int i = 0; i < stbds_arrlen(params); ++i) {
+                gbString param = ast_make_expr_str(params[i]);
+                str = gb_append_string(str, param);
+                str = gb_append_cstring(str, ", ");
+                gb_free_string(param);
+            }
+            str = gb_append_cstring(str, ") ");
+
+            gbString body = ast_make_stmt_str(expr->data.fn_lit.body);
+            str = gb_append_string(str, body);
             break;
         default:
             assert(0 && "unreachable");
