@@ -402,6 +402,7 @@ TEST parser_test_operator_precedence_parsing(void) {
         ASSERT(stmt != NULL);
         ASSERT(stmt->tag == ast_EXPR_STMT);
 
+        gb_free_string(prg_str);
         par_free_parser(parser);
         ast_free_program(program);
     }
