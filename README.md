@@ -3,6 +3,10 @@
 Experimental interpreter written from scratch in c
 - based on Thorsten Ball's ["Writing An Interpreter In Go - Monkey Lang"](https://interpreterbook.com/)
 
+https://github.com/user-attachments/assets/82c04eb4-125a-4da2-b99a-4adb903be9ea
+
+https://github.com/user-attachments/assets/34f7684f-48aa-4e39-8a03-aed9777b29d9
+
 ## setup
 ### Build Deps
 - clang > 18.1.8
