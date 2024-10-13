@@ -30,6 +30,10 @@ obj_Object *obj_alloc_object() {
     return obj;
 }
 
+void obj_free_object(obj_Object *obj) {
+    free(obj);
+}
+
 gbString obj_object_inspect(obj_Object *obj) {
     gbString res = gb_make_string("");
     switch (obj->type) {

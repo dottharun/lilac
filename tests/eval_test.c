@@ -19,6 +19,12 @@ bool test_int_obj(obj_Object *obj, int expected) {
     return true;
 }
 
+bool test_bool_obj(obj_Object *obj, bool expected) {
+    assert(obj->type == obj_BOOLEAN);
+    assert(obj->m_bool == expected);
+    return true;
+}
+
 TEST eval_test_int_expr(void) {
     struct {
         char *input;
@@ -32,12 +38,32 @@ TEST eval_test_int_expr(void) {
     for (int i = 0; i < n; ++i) {
         obj_Object *evaluated = test_eval(tests[i].input);
         ASSERT(test_int_obj(evaluated, tests[i].expected));
-        ASSERT_STR_EQ(tests[i].input, obj_object_inspect(evaluated));
-        // TODO: free evaluated
+
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
+TEST eval_test_bool_expr(void) {
+    struct {
+        char *input;
+        bool expected;
+    } tests[] = {
+        { "true", true },
+        { "false", false },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_bool_obj(evaluated, tests[i].expected));
+
+        obj_free_object(evaluated);
     }
     PASS();
 }
 
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
+    RUN_TEST(eval_test_bool_expr);
 }

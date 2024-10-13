@@ -10,6 +10,10 @@ obj_Object *eval_expr(struct ast_Expr *expr) {
             obj->type = obj_INTEGER;
             obj->m_int = expr->data.int_lit.value;
             break;
+        case ast_BOOL_EXPR:
+            obj->type = obj_BOOLEAN;
+            obj->m_bool = expr->data.boolean.value;
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -21,6 +25,12 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
     switch (stmt->tag) {
         case ast_EXPR_STMT:
             obj = eval_expr(stmt->data.expr.expr);
+            break;
+        case ast_LET_STMT:
+            break;
+        case ast_RET_STMT:
+            break;
+        case ast_BLOCK_STMT:
             break;
         default:
             assert(0 && "unreachable");

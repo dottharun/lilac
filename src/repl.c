@@ -122,7 +122,7 @@ void repl_start_eval() {
             printf("Oops, the monkey sees some errors in evaluator.\n");
         }
 
-        // TODO: free evaluated
+        obj_free_object(evaluated);
         par_free_parser(parser);
         ast_free_program(program);
     }
