@@ -25,6 +25,11 @@ typedef struct {
     };
 } obj_Object;
 
+obj_Object *obj_alloc_object() {
+    obj_Object *obj = malloc(sizeof(obj_Object));
+    return obj;
+}
+
 gbString obj_object_inspect(obj_Object *obj) {
     gbString res = gb_make_string("");
     switch (obj->type) {

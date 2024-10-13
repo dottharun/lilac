@@ -4,7 +4,7 @@
 
 SUITE(eval_suite);
 
-obj_Object test_eval(char *input) {
+obj_Object *test_eval(char *input) {
     struct lex_Lexer lexer = lex_Lexer_create(input);
     struct par_Parser *parser = par_alloc_parser(&lexer);
     struct ast_Program *program = ast_alloc_program();
@@ -13,9 +13,9 @@ obj_Object test_eval(char *input) {
     return eval_eval((ast_Node){ ast_NODE_PRG, .prg = program });
 }
 
-bool test_int_obj(obj_Object obj, int expected) {
-    assert(obj.type == obj_INTEGER);
-    assert(obj.m_int == expected);
+bool test_int_obj(obj_Object *obj, int expected) {
+    assert(obj->type == obj_INTEGER);
+    assert(obj->m_int == expected);
     return true;
 }
 
@@ -30,7 +30,7 @@ TEST eval_test_int_expr(void) {
 
     int n = sizeof(tests) / sizeof(tests[0]);
     for (int i = 0; i < n; ++i) {
-        obj_Object evaluated = test_eval(tests[i].input);
+        obj_Object *evaluated = test_eval(tests[i].input);
         ASSERT(test_int_obj(evaluated, tests[i].expected));
     }
     PASS();
