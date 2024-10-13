@@ -1,3 +1,4 @@
+#pragma once
 #include "parser.h"
 
 #include "parser_tracing.c"
@@ -83,7 +84,7 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             left_expr = ast_alloc_expr(ast_INT_LIT_EXPR);
             left_expr->token = parser->curr_token;
 
-            int err = str_to_int(
+            int err = util_str_to_int(
                 left_expr->token.literal,
                 &left_expr->data.int_lit.value
             );

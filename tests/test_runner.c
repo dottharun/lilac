@@ -1,4 +1,5 @@
 #include "ast_test.c"
+#include "eval_test.c"
 #include "lexer_test.c"
 #include "parser_test.c"
 
@@ -15,6 +16,7 @@ int main(int argc, char **argv) {
     RUN_SUITE(ast_suite);
     RUN_SUITE(lexer_suite);
     RUN_SUITE(parser_suite);
+    RUN_SUITE(eval_suite);
 
     GREATEST_MAIN_END(); /* display results */
 }

@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <stdio.h>
 
 // deps -------------------------
 
@@ -19,7 +20,7 @@
 
 typedef char sstring[SHORT_STRING_MAXLEN];
 
-int str_to_int(const char *str, int *result) {
+int util_str_to_int(const char *str, int *result) {
     char *endptr;
     errno = 0;
     intmax_t value = strtoimax(str, &endptr, 10);
@@ -38,4 +39,10 @@ int str_to_int(const char *str, int *result) {
 
     *result = (int)value;
     return 0; // Success
+}
+
+gbString util_int_to_str(int x) {
+    gbString str = gb_make_string_length("", 11);
+    sprintf(str, "%d", x);
+    return str;
 }

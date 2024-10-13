@@ -283,13 +283,6 @@ gbString ast_make_stmt_str(struct ast_Stmt *stmt) {
     return str;
 }
 
-// ---------------------- Program
-
-struct ast_Program {
-    // dynamic array of statement_ptrs
-    struct ast_Stmt **statement_ptrs_da;
-};
-
 // must free after using
 struct ast_Program *ast_alloc_program() {
     struct ast_Program *program = malloc(sizeof(struct ast_Program));

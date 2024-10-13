@@ -1,3 +1,4 @@
+#pragma once
 #include "ast.c"
 #include "lexer.c"
 #include "token.c"

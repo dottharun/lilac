@@ -6,6 +6,7 @@
 
 // ---------------------- Expression
 
+// TODO: convert union to anonymous
 struct ast_Expr {
     struct tok_Token token;
 
@@ -66,6 +67,7 @@ struct ast_Expr {
 
 // ---------------------- Statement
 
+// TODO: convert union to anonymous
 struct ast_Stmt {
     struct tok_Token token;
 
@@ -100,3 +102,22 @@ struct ast_Stmt {
 gbString ast_make_stmt_str(struct ast_Stmt *stmt);
 
 void ast_free_stmt(struct ast_Stmt *stmt);
+
+struct ast_Program {
+    // dynamic array of statement_ptrs
+    struct ast_Stmt **statement_ptrs_da;
+};
+
+typedef struct {
+    enum ast_Node_type {
+        ast_NODE_EXPR,
+        ast_NODE_STMT,
+        ast_NODE_PRG,
+    } tag;
+
+    union {
+        struct ast_Stmt *stmt;
+        struct ast_Expr *expr;
+        struct ast_Program *prg;
+    };
+} ast_Node;
