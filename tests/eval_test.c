@@ -32,6 +32,8 @@ TEST eval_test_int_expr(void) {
     for (int i = 0; i < n; ++i) {
         obj_Object *evaluated = test_eval(tests[i].input);
         ASSERT(test_int_obj(evaluated, tests[i].expected));
+        ASSERT_STR_EQ(tests[i].input, obj_object_inspect(evaluated));
+        // TODO: free evaluated
     }
     PASS();
 }

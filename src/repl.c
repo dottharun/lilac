@@ -1,3 +1,4 @@
+#include "eval.c"
 #include "lexer.c"
 #include "parser.c"
 #include "util.c"
@@ -7,6 +8,7 @@
 enum repl_modes {
     repl_mode_LEXER,
     repl_mode_PARSER,
+    repl_mode_EVAL,
 };
 
 void repl_start_lexer() {
@@ -44,10 +46,7 @@ void repl_print_parser_errors(gbString *errs) {
     }
 }
 
-void repl_start_parser() {
-    const char PROMPT[] = "LILAC-PARSER> ";
-
-    const char MONKEY_EEK[] = "\
+const char MONKEY_EEK[] = "\
        __    EEEK!    \n\
       /  \\   ~~|~~   \n\
      (|00|)    |      \n\
@@ -60,6 +59,9 @@ void repl_start_parser() {
 _|| _| || |_ ||_      \n\
 \\|||___||___|||/\\   \n\
 ";
+
+void repl_start_parser() {
+    const char PROMPT[] = "LILAC-PARSER> ";
 
     for (;;) {
         printf(PROMPT);
@@ -88,8 +90,49 @@ _|| _| || |_ ||_      \n\
     }
 }
 
+void repl_start_eval() {
+    const char PROMPT[] = "LILAC> ";
+
+    for (;;) {
+        printf(PROMPT);
+
+        sstring line = "";
+        fgets(line, sizeof(line), stdin);
+
+        struct lex_Lexer lexer = lex_Lexer_create(line);
+        struct par_Parser *parser = par_alloc_parser(&lexer);
+        struct ast_Program *program = ast_alloc_program();
+        par_parse_program(parser, program);
+
+        if (stbds_arrlen(parser->errors_da) != 0) {
+            printf("%s", MONKEY_EEK);
+            printf("Oops, the monkey sees some errors in parser.\n");
+            repl_print_parser_errors(parser->errors_da);
+            continue;
+        }
+
+        // TODO: Add error handling
+        obj_Object *evaluated =
+            eval_eval((ast_Node){ ast_NODE_PRG, .prg = program });
+
+        if (evaluated != NULL) {
+            printf("%s\n", obj_object_inspect(evaluated));
+        } else {
+            printf("%s", MONKEY_EEK);
+            printf("Oops, the monkey sees some errors in evaluator.\n");
+        }
+
+        // TODO: free evaluated
+        par_free_parser(parser);
+        ast_free_program(program);
+    }
+}
+
 void repl_start(enum repl_modes mode) {
     switch (mode) {
+        case repl_mode_EVAL:
+            repl_start_eval();
+            break;
         case repl_mode_LEXER:
             repl_start_lexer();
             break;
@@ -97,6 +140,6 @@ void repl_start(enum repl_modes mode) {
             repl_start_parser();
             break;
         default:
-            repl_start_parser();
+            assert(0 && "unreachable");
     }
 }

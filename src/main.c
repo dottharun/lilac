@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     printf("Feel free to type in the commands.\n");
 
     // repl mode
-    enum repl_modes mode = repl_mode_PARSER;
+    enum repl_modes mode = repl_mode_EVAL;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--lexer") == 0) {
