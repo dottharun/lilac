@@ -84,6 +84,16 @@ obj_Object *
 eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
     if (left->type == obj_INTEGER && right->type == obj_INTEGER) {
         return eval_int_infix_expr(operator, left, right);
+    } else if (strcmp(operator, "==") == 0) {
+        obj_Object *cmp = obj_native_bool_object(obj_is_same(left, right));
+        obj_free_object(right);
+        obj_free_object(left);
+        return cmp;
+    } else if (strcmp(operator, "!=") == 0) {
+        obj_Object *cmp = obj_native_bool_object(!obj_is_same(left, right));
+        obj_free_object(right);
+        obj_free_object(left);
+        return cmp;
     } else {
         // TODO: implement err handling
         obj_free_object(right);
