@@ -1,20 +1,37 @@
 #include "util.c"
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 
+#define ENUMERATE_OBJECTS \
+    __ENUMERATE_OBJECT(obj_INTEGER) \
+    __ENUMERATE_OBJECT(obj_BOOLEAN) \
+    __ENUMERATE_OBJECT(obj_NULL) \
+    __ENUMERATE_OBJECT(obj_ERROR) \
+    __ENUMERATE_OBJECT(obj_STRING) \
+    __ENUMERATE_OBJECT(obj_RETURN_VALUE) \
+    __ENUMERATE_OBJECT(obj_FUNCTION) \
+    __ENUMERATE_OBJECT(obj_BUILTIN) \
+    __ENUMERATE_OBJECT(obj_ARRAY) \
+    __ENUMERATE_OBJECT(obj_HASH)
+
 enum obj_Type {
-    obj_INTEGER,
-    obj_BOOLEAN,
-    obj_NULL,
-    // obj_ERROR,
-    // obj_STRING,
-    obj_RETURN_VALUE,
-    // obj_FUNCTION,
-    // obj_BUILTIN,
-    // obj_ARRAY,
-    // obj_HASH,
+#define __ENUMERATE_OBJECT(obj) obj,
+    ENUMERATE_OBJECTS
+#undef __ENUMERATE_OBJECT
 };
+
+const char *obj_object_name(enum obj_Type type) {
+    switch (type) {
+#define __ENUMERATE_OBJECT(obj) \
+    case obj: \
+        return #obj;
+        ENUMERATE_OBJECTS
+#undef __ENUMERATE_OBJECT
+    }
+    assert(0 && "unreachable");
+}
 
 typedef struct obj_Object {
     enum obj_Type type;
@@ -23,6 +40,7 @@ typedef struct obj_Object {
         int m_int;
         bool m_bool;
         struct obj_Object *m_return_obj;
+        gbString m_err_msg;
     };
 } obj_Object;
 
@@ -43,6 +61,21 @@ obj_Object *obj_native_bool_object(bool val) {
     }
 }
 
+#define MAX_ERR_STRING_LEN 1024
+
+obj_Object *obj_alloc_err_object(const char *format, ...) {
+    obj_Object *err_obj = malloc(sizeof(obj_Object));
+    err_obj->type = obj_ERROR;
+    err_obj->m_err_msg = gb_make_string_length("", MAX_ERR_STRING_LEN);
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(err_obj->m_err_msg, MAX_ERR_STRING_LEN, format, args);
+    va_end(args);
+
+    return err_obj;
+}
+
 obj_Object *obj_alloc_object(enum obj_Type type) {
     obj_Object *obj = NULL;
     switch (type) {
@@ -55,6 +88,7 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
             obj->type = obj_RETURN_VALUE;
             break;
         case obj_BOOLEAN: // should use the native objects
+        case obj_ERROR: // use its own func
         default:
             assert(0 && "unreachable");
     }
@@ -74,9 +108,17 @@ void obj_free_object(obj_Object *obj) {
             obj_free_object(obj->m_return_obj);
             free(obj);
             break;
+        case obj_ERROR:
+            gb_free_string(obj->m_err_msg);
+            free(obj);
+            break;
         default:
             assert(0 && "unreachable");
     }
+}
+
+bool obj_is_err(obj_Object *obj) {
+    return (obj == NULL ? false : (obj->type == obj_ERROR));
 }
 
 bool obj_is_same(obj_Object *x, obj_Object *y) {
@@ -109,6 +151,10 @@ gbString obj_object_inspect(obj_Object *obj) {
             break;
         case obj_RETURN_VALUE:
             res = obj_object_inspect(obj->m_return_obj);
+            break;
+        case obj_ERROR:
+            res = gb_append_cstring(res, "ERROR: ");
+            res = gb_append_string(res, obj->m_err_msg);
             break;
         default:
             assert(0 && "unreachable");

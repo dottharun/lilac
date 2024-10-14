@@ -31,6 +31,11 @@ bool test_null_obj(obj_Object *obj) {
     return obj_is_same(obj, obj_null());
 }
 
+bool test_err_obj(obj_Object *obj, char *err_str) {
+    assert(obj->type == obj_ERROR);
+    return strcmp(obj->m_err_msg, err_str) == 0;
+}
+
 TEST eval_test_int_expr(void) {
     struct {
         char *input;
@@ -176,12 +181,12 @@ TEST eval_test_ret_stmt(void) {
         { "return 2 * 5; 9;", 10 },
         { "9; return 2 * 5; 9;", 10 },
         {
-            "\
-if (10 > 1) {\
-  if (10 > 1) {\
-    return 10;\
-  }\
-  return 1;\
+            "   \
+if (10 > 1) {   \
+  if (10 > 1) { \
+    return 10;  \
+  }             \
+  return 1;     \
 }",
             10,
         },
@@ -196,6 +201,56 @@ if (10 > 1) {\
     PASS();
 }
 
+TEST eval_test_err_handling(void) {
+    struct {
+        char *input;
+        char *expected;
+    } tests[] = {
+        {
+            "5 + true;",
+            "type mismatch: obj_INTEGER + obj_BOOLEAN",
+        },
+        {
+            "5 + true; 5;",
+            "type mismatch: obj_INTEGER + obj_BOOLEAN",
+        },
+        {
+            "-true",
+            "unknown operator: -obj_BOOLEAN",
+        },
+        {
+            "true + false;",
+            "unknown operator: obj_BOOLEAN + obj_BOOLEAN",
+        },
+        {
+            "5; true + false; 5",
+            "unknown operator: obj_BOOLEAN + obj_BOOLEAN",
+        },
+        {
+            "if (10 > 1) { true + false; }",
+            "unknown operator: obj_BOOLEAN + obj_BOOLEAN",
+        },
+        {
+            "            \
+if (10 > 1) {            \
+  if (10 > 1) {          \
+    return true + false; \
+  }                      \
+  return 1;              \
+}",
+            "unknown operator: obj_BOOLEAN + obj_BOOLEAN",
+        },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_err_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -203,4 +258,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_infix_expr);
     RUN_TEST(eval_test_if_else_expr);
     RUN_TEST(eval_test_ret_stmt);
+    RUN_TEST(eval_test_err_handling);
 }
