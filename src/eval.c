@@ -145,6 +145,20 @@ obj_Object *eval_expr(struct ast_Expr *expr) {
     return obj;
 }
 
+obj_Object *eval_block_stmts(struct ast_Stmt **stmts) {
+    obj_Object *obj = NULL;
+    for (int i = 0; i < stbds_arrlen(stmts); ++i) {
+        obj = eval_stmt(stmts[i]);
+
+        // Here we are not unwrapping return val here and sending it to caller
+        // as return val
+        if (obj != NULL && obj->type == obj_RETURN_VALUE) {
+            return obj;
+        }
+    }
+    return obj;
+}
+
 obj_Object *eval_stmt(struct ast_Stmt *stmt) {
     obj_Object *obj = NULL;
     switch (stmt->tag) {
@@ -152,7 +166,7 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
             obj = eval_expr(stmt->data.expr.expr);
             break;
         case ast_BLOCK_STMT:
-            obj = eval_stmts(stmt->data.block.stmts_da);
+            obj = eval_block_stmts(stmt->data.block.stmts_da);
             break;
         case ast_RET_STMT:
             obj = obj_alloc_object(obj_RETURN_VALUE);
@@ -164,12 +178,14 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
     return obj;
 }
 
-obj_Object *eval_stmts(struct ast_Stmt **stmts) {
+obj_Object *eval_prg(struct ast_Stmt **stmts) {
     obj_Object *obj = NULL;
     for (int i = 0; i < stbds_arrlen(stmts); ++i) {
-        // TODO: this needs to handle each stmts separately
         obj = eval_stmt(stmts[i]);
 
+        // Here we are unwrapping the return val and convert it as normal object
+        // to the caller - since programs are not recursive and need to evaluate
+        // calculatable value
         if (obj->type == obj_RETURN_VALUE) {
             obj_Object *ret = obj->m_return_obj;
             free(obj);
@@ -185,7 +201,7 @@ obj_Object *eval_stmts(struct ast_Stmt **stmts) {
 obj_Object *eval_eval(ast_Node node) {
     switch (node.tag) {
         case ast_NODE_PRG:
-            return eval_stmts(node.prg->statement_ptrs_da);
+            return eval_prg(node.prg->statement_ptrs_da);
         case ast_NODE_EXPR:
             return eval_expr(node.expr);
         case ast_NODE_STMT:
