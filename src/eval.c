@@ -4,15 +4,14 @@
 #include "parser.c"
 
 obj_Object *eval_expr(struct ast_Expr *expr) {
-    obj_Object *obj = obj_alloc_object();
+    obj_Object *obj = NULL;
     switch (expr->tag) {
         case ast_INT_LIT_EXPR:
-            obj->type = obj_INTEGER;
+            obj = obj_alloc_object(obj_INTEGER);
             obj->m_int = expr->data.int_lit.value;
             break;
         case ast_BOOL_EXPR:
-            obj->type = obj_BOOLEAN;
-            obj->m_bool = expr->data.boolean.value;
+            obj = obj_native_bool_object(expr->data.boolean.value);
             break;
         default:
             assert(0 && "unreachable");
