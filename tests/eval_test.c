@@ -52,8 +52,10 @@ TEST eval_test_bool_expr(void) {
         char *input;
         bool expected;
     } tests[] = {
-        { "true", true },
-        { "false", false },
+        { "true", true },   { "false", false },  { "1 < 2", true },
+        { "1 > 2", false }, { "1 < 1", false },  { "1 > 1", false },
+        { "1 == 1", true }, { "1 != 1", false }, { "1 == 2", false },
+        { "1 != 2", true },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);

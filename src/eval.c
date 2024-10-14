@@ -53,6 +53,26 @@ eval_int_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
         left->m_int /= right->m_int;
         obj_free_object(right);
         return left;
+    } else if (strcmp(operator, "<") == 0) {
+        obj_Object *cmp = obj_native_bool_object(left->m_int < right->m_int);
+        obj_free_object(left);
+        obj_free_object(right);
+        return cmp;
+    } else if (strcmp(operator, ">") == 0) {
+        obj_Object *cmp = obj_native_bool_object(left->m_int > right->m_int);
+        obj_free_object(left);
+        obj_free_object(right);
+        return cmp;
+    } else if (strcmp(operator, "==") == 0) {
+        obj_Object *cmp = obj_native_bool_object(left->m_int == right->m_int);
+        obj_free_object(left);
+        obj_free_object(right);
+        return cmp;
+    } else if (strcmp(operator, "!=") == 0) {
+        obj_Object *cmp = obj_native_bool_object(left->m_int != right->m_int);
+        obj_free_object(left);
+        obj_free_object(right);
+        return cmp;
     } else {
         obj_free_object(right);
         obj_free_object(left);
