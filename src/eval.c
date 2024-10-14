@@ -154,6 +154,10 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
         case ast_BLOCK_STMT:
             obj = eval_stmts(stmt->data.block.stmts_da);
             break;
+        case ast_RET_STMT:
+            obj = obj_alloc_object(obj_RETURN_VALUE);
+            obj->m_return_obj = eval_expr(stmt->data.ret.ret_val);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -165,6 +169,12 @@ obj_Object *eval_stmts(struct ast_Stmt **stmts) {
     for (int i = 0; i < stbds_arrlen(stmts); ++i) {
         // TODO: this needs to handle each stmts separately
         obj = eval_stmt(stmts[i]);
+
+        if (obj->type == obj_RETURN_VALUE) {
+            obj_Object *ret = obj->m_return_obj;
+            free(obj);
+            return ret;
+        }
     }
     return obj;
 }

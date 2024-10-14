@@ -166,10 +166,31 @@ TEST eval_test_if_else_expr(void) {
     PASS();
 }
 
+TEST eval_test_ret_stmt(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "return 10;", 10 },
+        { "return 10; 9;", 10 },
+        { "return 2 * 5; 9;", 10 },
+        { "9; return 2 * 5; 9;", 10 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_int_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
     RUN_TEST(eval_test_bang_operator);
     RUN_TEST(eval_test_infix_expr);
     RUN_TEST(eval_test_if_else_expr);
+    RUN_TEST(eval_test_ret_stmt);
 }

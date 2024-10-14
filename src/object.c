@@ -9,19 +9,20 @@ enum obj_Type {
     obj_NULL,
     // obj_ERROR,
     // obj_STRING,
-    // obj_RETURN_VALUE,
+    obj_RETURN_VALUE,
     // obj_FUNCTION,
     // obj_BUILTIN,
     // obj_ARRAY,
     // obj_HASH,
 };
 
-typedef struct {
+typedef struct obj_Object {
     enum obj_Type type;
 
     union {
         int m_int;
         bool m_bool;
+        struct obj_Object *m_return_obj;
     };
 } obj_Object;
 
@@ -49,6 +50,10 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
             obj = malloc(sizeof(obj_Object));
             obj->type = obj_INTEGER;
             break;
+        case obj_RETURN_VALUE:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_RETURN_VALUE;
+            break;
         case obj_BOOLEAN: // should use the native objects
         default:
             assert(0 && "unreachable");
@@ -64,6 +69,10 @@ void obj_free_object(obj_Object *obj) {
         case obj_BOOLEAN:
         case obj_NULL:
             // NOTHING since we use native obj
+            break;
+        case obj_RETURN_VALUE:
+            obj_free_object(obj->m_return_obj);
+            free(obj);
             break;
         default:
             assert(0 && "unreachable");
@@ -97,6 +106,9 @@ gbString obj_object_inspect(obj_Object *obj) {
             break;
         case obj_NULL:
             res = gb_append_cstring(res, "null");
+            break;
+        case obj_RETURN_VALUE:
+            res = obj_object_inspect(obj->m_return_obj);
             break;
         default:
             assert(0 && "unreachable");
