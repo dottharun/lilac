@@ -84,8 +84,40 @@ TEST eval_test_bang_operator(void) {
     PASS();
 }
 
+TEST eval_test_infix_expr(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "5", 5 },
+        { "10", 10 },
+        { "-5", -5 },
+        { "-10", -10 },
+        { "5 + 5 + 5 + 5 - 10", 10 },
+        { "2 * 2 * 2 * 2 * 2", 32 },
+        { "-50 + 100 + -50", 0 },
+        { "5 * 2 + 10", 20 },
+        { "5 + 2 * 10", 25 },
+        { "20 + 2 * -10", 0 },
+        { "50 / 2 * 2 + 10", 60 },
+        { "2 * (5 + 10)", 30 },
+        { "3 * 3 * 3 + 10", 37 },
+        { "3 * (3 * 3) + 10", 37 },
+        { "(5 + 10 * 2 + 15 / 3) * 2 + -10", 50 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_int_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
     RUN_TEST(eval_test_bang_operator);
+    RUN_TEST(eval_test_infix_expr);
 }

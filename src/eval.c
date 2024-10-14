@@ -35,6 +35,43 @@ obj_Object *eval_prefix_expr(char *operator, obj_Object * right) {
     }
 }
 
+obj_Object *
+eval_int_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
+    if (strcmp(operator, "+") == 0) {
+        left->m_int += right->m_int;
+        obj_free_object(right);
+        return left;
+    } else if (strcmp(operator, "-") == 0) {
+        left->m_int -= right->m_int;
+        obj_free_object(right);
+        return left;
+    } else if (strcmp(operator, "*") == 0) {
+        left->m_int *= right->m_int;
+        obj_free_object(right);
+        return left;
+    } else if (strcmp(operator, "/") == 0) {
+        left->m_int /= right->m_int;
+        obj_free_object(right);
+        return left;
+    } else {
+        obj_free_object(right);
+        obj_free_object(left);
+        return obj_null();
+    }
+}
+
+obj_Object *
+eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
+    if (left->type == obj_INTEGER && right->type == obj_INTEGER) {
+        return eval_int_infix_expr(operator, left, right);
+    } else {
+        // TODO: implement err handling
+        obj_free_object(right);
+        obj_free_object(left);
+        return obj_null();
+    }
+}
+
 obj_Object *eval_expr(struct ast_Expr *expr) {
     obj_Object *obj = NULL;
     switch (expr->tag) {
@@ -49,6 +86,13 @@ obj_Object *eval_expr(struct ast_Expr *expr) {
             obj = eval_prefix_expr(
                 expr->data.pf.operator,
                 eval_expr(expr->data.pf.right)
+            );
+            break;
+        case ast_INFIX_EXPR:
+            obj = eval_infix_expr(
+                expr->data.inf.operator,
+                eval_expr(expr->data.inf.left),
+                eval_expr(expr->data.inf.right)
             );
             break;
         default:
