@@ -74,6 +74,18 @@ bool obj_is_same(obj_Object *x, obj_Object *y) {
     return (memcmp(x, y, sizeof(obj_Object)) == 0);
 }
 
+bool obj_is_truthy(obj_Object *obj) {
+    if (obj_is_same(obj, &NULL_OBJECT)) {
+        return false;
+    } else if (obj_is_same(obj, &TRUE_OBJECT)) {
+        return true;
+    } else if (obj_is_same(obj, &FALSE_OBJECT)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 gbString obj_object_inspect(obj_Object *obj) {
     gbString res = gb_make_string("");
     switch (obj->type) {

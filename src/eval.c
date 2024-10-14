@@ -1,5 +1,4 @@
-#include "ast.c"
-#include "object.c"
+#include "eval.h"
 
 obj_Object *eval_bang_operator_expr(obj_Object *right) {
     if (obj_is_same(right, &TRUE_OBJECT)) {
@@ -102,6 +101,18 @@ eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
     }
 }
 
+obj_Object *eval_if_expr(struct ast_Expr *if_expr) {
+    obj_Object *cond = eval_expr(if_expr->data.ife.cond);
+
+    if (obj_is_truthy(cond)) {
+        return eval_stmt(if_expr->data.ife.conseq);
+    } else if (if_expr->data.ife.alt != NULL) {
+        return eval_stmt(if_expr->data.ife.alt);
+    } else {
+        return obj_null();
+    }
+}
+
 obj_Object *eval_expr(struct ast_Expr *expr) {
     obj_Object *obj = NULL;
     switch (expr->tag) {
@@ -125,6 +136,9 @@ obj_Object *eval_expr(struct ast_Expr *expr) {
                 eval_expr(expr->data.inf.right)
             );
             break;
+        case ast_IF_EXPR:
+            obj = eval_if_expr(expr);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -137,17 +151,20 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
         case ast_EXPR_STMT:
             obj = eval_expr(stmt->data.expr.expr);
             break;
+        case ast_BLOCK_STMT:
+            obj = eval_stmts(stmt->data.block.stmts_da);
+            break;
         default:
             assert(0 && "unreachable");
     }
     return obj;
 }
 
-obj_Object *eval_prg(struct ast_Program *prg) {
+obj_Object *eval_stmts(struct ast_Stmt **stmts) {
     obj_Object *obj = NULL;
-    for (int i = 0; i < stbds_arrlen(prg->statement_ptrs_da); ++i) {
+    for (int i = 0; i < stbds_arrlen(stmts); ++i) {
         // TODO: this needs to handle each stmts separately
-        obj = eval_stmt(prg->statement_ptrs_da[i]);
+        obj = eval_stmt(stmts[i]);
     }
     return obj;
 }
@@ -158,7 +175,7 @@ obj_Object *eval_prg(struct ast_Program *prg) {
 obj_Object *eval_eval(ast_Node node) {
     switch (node.tag) {
         case ast_NODE_PRG:
-            return eval_prg(node.prg);
+            return eval_stmts(node.prg->statement_ptrs_da);
         case ast_NODE_EXPR:
             return eval_expr(node.expr);
         case ast_NODE_STMT:

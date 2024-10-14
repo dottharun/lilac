@@ -26,6 +26,11 @@ bool test_bool_obj(obj_Object *obj, bool expected) {
     return true;
 }
 
+bool test_null_obj(obj_Object *obj) {
+    assert(obj->type == obj_NULL);
+    return obj_is_same(obj, obj_null());
+}
+
 TEST eval_test_int_expr(void) {
     struct {
         char *input;
@@ -132,9 +137,39 @@ TEST eval_test_infix_expr(void) {
     PASS();
 }
 
+#define nil INT32_MIN
+
+TEST eval_test_if_else_expr(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "if (true) { 10 }", 10 },
+        { "if (false) { 10 }", nil },
+        { "if (1) { 10 }", 10 },
+        { "if (1 < 2) { 10 }", 10 },
+        { "if (1 > 2) { 10 }", nil },
+        { "if (1 > 2) { 10 } else { 20 }", 20 },
+        { "if (1 < 2) { 10 } else { 20 }", 10 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        if (tests[i].expected != nil) {
+            ASSERT(test_int_obj(evaluated, tests[i].expected));
+        } else {
+            ASSERT(test_null_obj(evaluated));
+        }
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
     RUN_TEST(eval_test_bang_operator);
     RUN_TEST(eval_test_infix_expr);
+    RUN_TEST(eval_test_if_else_expr);
 }
