@@ -33,6 +33,8 @@ TEST eval_test_int_expr(void) {
     } tests[] = {
         { "5", 5 },
         { "10", 10 },
+        { "-5", -5 },
+        { "-10", -10 },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);

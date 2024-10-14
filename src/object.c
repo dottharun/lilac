@@ -30,7 +30,7 @@ static obj_Object NULL_OBJECT = { .type = obj_NULL };
 static obj_Object TRUE_OBJECT = { .type = obj_BOOLEAN, .m_bool = true };
 static obj_Object FALSE_OBJECT = { .type = obj_BOOLEAN, .m_bool = false };
 
-obj_Object *obj_native_null_object() {
+obj_Object *obj_null() {
     return &NULL_OBJECT;
 }
 
@@ -62,6 +62,7 @@ void obj_free_object(obj_Object *obj) {
             free(obj);
             break;
         case obj_BOOLEAN:
+        case obj_NULL:
             // NOTHING since we use native obj
             break;
         default:

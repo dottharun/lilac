@@ -13,12 +13,25 @@ obj_Object *eval_bang_operator_expr(obj_Object *right) {
     }
 }
 
+obj_Object *eval_minus_operator_prefix_expr(obj_Object *right) {
+    if (right->type != obj_INTEGER) {
+        obj_free_object(right);
+        return obj_null();
+    }
+
+    right->m_int = -right->m_int;
+    return right;
+}
+
 obj_Object *eval_prefix_expr(char *operator, obj_Object * right) {
     if (strcmp(operator, "!") == 0) {
         return eval_bang_operator_expr(right);
+    } else if (strcmp(operator, "-") == 0) {
+        return eval_minus_operator_prefix_expr(right);
     } else {
-        assert(0 && "unreachable");
-        // return NULL; //TODO: implement err handling
+        // TODO: implement err handling
+        obj_free_object(right);
+        return obj_null();
     }
 }
 
