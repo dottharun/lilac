@@ -1,7 +1,26 @@
 #include "ast.c"
-#include "lexer.c"
 #include "object.c"
-#include "parser.c"
+
+obj_Object *eval_bang_operator_expr(obj_Object *right) {
+    if (obj_is_same(right, &TRUE_OBJECT)) {
+        return obj_native_bool_object(false);
+    } else if (obj_is_same(right, &FALSE_OBJECT)) {
+        return obj_native_bool_object(true);
+    } else if (obj_is_same(right, &NULL_OBJECT)) {
+        return obj_native_bool_object(true);
+    } else {
+        return obj_native_bool_object(false);
+    }
+}
+
+obj_Object *eval_prefix_expr(char *operator, obj_Object * right) {
+    if (strcmp(operator, "!") == 0) {
+        return eval_bang_operator_expr(right);
+    } else {
+        assert(0 && "unreachable");
+        // return NULL; //TODO: implement err handling
+    }
+}
 
 obj_Object *eval_expr(struct ast_Expr *expr) {
     obj_Object *obj = NULL;
@@ -12,6 +31,12 @@ obj_Object *eval_expr(struct ast_Expr *expr) {
             break;
         case ast_BOOL_EXPR:
             obj = obj_native_bool_object(expr->data.boolean.value);
+            break;
+        case ast_PREFIX_EXPR:
+            obj = eval_prefix_expr(
+                expr->data.pf.operator,
+                eval_expr(expr->data.pf.right)
+            );
             break;
         default:
             assert(0 && "unreachable");
@@ -24,12 +49,6 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt) {
     switch (stmt->tag) {
         case ast_EXPR_STMT:
             obj = eval_expr(stmt->data.expr.expr);
-            break;
-        case ast_LET_STMT:
-            break;
-        case ast_RET_STMT:
-            break;
-        case ast_BLOCK_STMT:
             break;
         default:
             assert(0 && "unreachable");

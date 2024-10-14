@@ -26,8 +26,13 @@ typedef struct {
 } obj_Object;
 
 // Native objects to be referenced by ptrs
+static obj_Object NULL_OBJECT = { .type = obj_NULL };
 static obj_Object TRUE_OBJECT = { .type = obj_BOOLEAN, .m_bool = true };
 static obj_Object FALSE_OBJECT = { .type = obj_BOOLEAN, .m_bool = false };
+
+obj_Object *obj_native_null_object() {
+    return &NULL_OBJECT;
+}
 
 obj_Object *obj_native_bool_object(bool val) {
     if (val) {
@@ -62,6 +67,10 @@ void obj_free_object(obj_Object *obj) {
         default:
             assert(0 && "unreachable");
     }
+}
+
+bool obj_is_same(obj_Object *x, obj_Object *y) {
+    return (memcmp(x, y, sizeof(obj_Object)) == 0);
 }
 
 gbString obj_object_inspect(obj_Object *obj) {

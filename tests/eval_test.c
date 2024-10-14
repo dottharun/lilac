@@ -1,6 +1,7 @@
 #include "greatest.h"
 
 #include "../src/eval.c"
+#include "../src/parser.c"
 
 SUITE(eval_suite);
 
@@ -63,7 +64,26 @@ TEST eval_test_bool_expr(void) {
     PASS();
 }
 
+TEST eval_test_bang_operator(void) {
+    struct {
+        char *input;
+        bool expected;
+    } tests[] = {
+        { "!true", false }, { "!false", true },   { "!5", false },
+        { "!!true", true }, { "!!false", false }, { "!!5", true },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_bool_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
+    RUN_TEST(eval_test_bang_operator);
 }
