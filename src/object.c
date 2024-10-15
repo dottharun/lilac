@@ -121,6 +121,28 @@ void obj_free_object(obj_Object *obj) {
     }
 }
 
+obj_Object *obj_deepcpy(obj_Object *src) {
+    if (src == NULL)
+        return NULL;
+
+    obj_Object *dest = malloc(sizeof(obj_Object));
+    memcpy(dest, src, sizeof(obj_Object));
+
+    switch (src->type) {
+        case obj_INTEGER:
+        case obj_BOOLEAN:
+        case obj_ERROR:
+            // NOTHING - since no deep ptrs
+            break;
+        case obj_RETURN_VALUE:
+            dest->m_return_obj = obj_deepcpy(src->m_return_obj);
+            break;
+        default:
+            assert(0 && "unreachable");
+    }
+    return dest;
+}
+
 bool obj_is_err(obj_Object *obj) {
     return (obj == NULL ? false : (obj->type == obj_ERROR));
 }

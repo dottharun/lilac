@@ -156,10 +156,7 @@ obj_Object *eval_identifier(struct ast_Expr *ident_expr, obj_Env *env) {
         );
     }
 
-    // TODO: deep copy pointer returned by env_get to val
-    obj_Object *val = malloc(sizeof(obj_Object));
-    memcpy(val, exists, sizeof(obj_Object));
-
+    obj_Object *val = obj_deepcpy(exists);
     return val;
 }
 

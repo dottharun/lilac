@@ -113,7 +113,6 @@ void repl_start_eval() {
             continue;
         }
 
-        // TODO: Add error handling
         obj_Object *evaluated =
             eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
 

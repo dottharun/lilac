@@ -50,9 +50,12 @@ void obj_env_set(obj_Env *env, gbString name, obj_Object *val) {
     }
 
     if (found_idx != -1) {
-        env->store[found_idx].value = val;
+        env->store[found_idx].value = obj_deepcpy(val);
     } else {
-        obj_Env_elem elem = { .key = name, .value = val };
+        obj_Env_elem elem = {
+            .key = util_str_deepcopy(name),
+            .value = obj_deepcpy(val),
+        };
         stbds_arrput(env->store, elem);
     }
     return;

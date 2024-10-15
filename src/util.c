@@ -41,6 +41,18 @@ int util_str_to_int(const char *str, int *result) {
     return 0; // Success
 }
 
+char *util_str_deepcopy(const char *original) {
+    if (original == NULL) {
+        return NULL;
+    }
+    char *copy = (char *)malloc(strlen(original) + 1);
+    if (copy == NULL) {
+        return NULL;
+    }
+    strcpy(copy, original);
+    return copy;
+}
+
 gbString util_int_to_str(int x) {
     gbString str = gb_make_string_length("", 11);
     sprintf(str, "%d", x);
