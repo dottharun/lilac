@@ -1,6 +1,7 @@
 #include "greatest.h"
 
 #include "../src/eval.c"
+#include "../src/object_env.c"
 #include "../src/parser.c"
 
 SUITE(eval_suite);
@@ -10,8 +11,9 @@ obj_Object *test_eval(char *input) {
     struct par_Parser *parser = par_alloc_parser(&lexer);
     struct ast_Program *program = ast_alloc_program();
     par_parse_program(parser, program);
+    obj_Env *env = obj_alloc_env();
 
-    return eval_eval((ast_Node){ ast_NODE_PRG, .prg = program });
+    return eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
 }
 
 bool test_int_obj(obj_Object *obj, int expected) {
@@ -240,12 +242,36 @@ if (10 > 1) {            \
 }",
             "unknown operator: obj_BOOLEAN + obj_BOOLEAN",
         },
+        {
+            "foobar",
+            "identifier not found: foobar",
+        },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
     for (int i = 0; i < n; ++i) {
         obj_Object *evaluated = test_eval(tests[i].input);
         ASSERT(test_err_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
+TEST eval_test_let_stmt(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "let a = 5; a;", 5 },
+        { "let a = 5 * 5; a;", 25 },
+        { "let a = 5; let b = a; b;", 5 },
+        { "let a = 5; let b = a; let c = a + b + 5; c;", 15 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_int_obj(evaluated, tests[i].expected));
         obj_free_object(evaluated);
     }
     PASS();
@@ -259,4 +285,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_if_else_expr);
     RUN_TEST(eval_test_ret_stmt);
     RUN_TEST(eval_test_err_handling);
+    RUN_TEST(eval_test_let_stmt);
 }

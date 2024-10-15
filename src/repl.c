@@ -1,5 +1,6 @@
 #include "eval.c"
 #include "lexer.c"
+#include "object_env.c"
 #include "parser.c"
 #include "util.c"
 
@@ -92,6 +93,7 @@ void repl_start_parser() {
 
 void repl_start_eval() {
     const char PROMPT[] = "LILAC> ";
+    obj_Env *env = obj_alloc_env();
 
     for (;;) {
         printf(PROMPT);
@@ -113,13 +115,10 @@ void repl_start_eval() {
 
         // TODO: Add error handling
         obj_Object *evaluated =
-            eval_eval((ast_Node){ ast_NODE_PRG, .prg = program });
+            eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
 
         if (evaluated != NULL) {
             printf("%s\n", obj_object_inspect(evaluated));
-        } else {
-            printf("%s", MONKEY_EEK);
-            printf("Oops, the monkey sees some errors in evaluator.\n");
         }
 
         obj_free_object(evaluated);

@@ -1,3 +1,4 @@
+#pragma once
 #include "util.c"
 
 #include <stdarg.h>
@@ -76,6 +77,7 @@ obj_Object *obj_alloc_err_object(const char *format, ...) {
     return err_obj;
 }
 
+// FIXME: use arena for correct cleanup and easy allocation
 obj_Object *obj_alloc_object(enum obj_Type type) {
     obj_Object *obj = NULL;
     switch (type) {
@@ -96,6 +98,8 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
 }
 
 void obj_free_object(obj_Object *obj) {
+    if (obj == NULL)
+        return;
     switch (obj->type) {
         case obj_INTEGER:
             free(obj);
