@@ -43,11 +43,19 @@ obj_Env *obj_env_deepcpy(obj_Env *obj) {
 
 // FIXME: convert to hashmap for better perf
 obj_Object *obj_env_get(obj_Env *env, gbString name) {
+    if (env == NULL)
+        return NULL;
+
     for (int i = 0; i < stbds_arrlen(env->store); ++i) {
         if (strcmp(env->store[i].key, name) == 0) {
             return env->store[i].value;
         }
     }
+
+    // check outer if its not NULL
+    if (env->outer != NULL)
+        return obj_env_get(env->outer, name);
+
     return NULL;
 }
 

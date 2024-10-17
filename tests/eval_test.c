@@ -317,6 +317,22 @@ TEST eval_test_fn_appln(void) {
     PASS();
 }
 
+TEST eval_test_closures(void) {
+    char *input = "        \
+let newAdder = fn(x) {     \
+    fn(y) { x + y };       \
+};                         \
+let addTwo = newAdder(66); \
+addTwo(22);                \
+";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT(test_int_obj(evaluated, 88));
+
+    obj_free_object(evaluated);
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -328,4 +344,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_let_stmt);
     RUN_TEST(eval_test_func_obj);
     RUN_TEST(eval_test_fn_appln);
+    RUN_TEST(eval_test_closures);
 }
