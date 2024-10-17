@@ -164,7 +164,7 @@ obj_Object *obj_deepcpy(obj_Object *src) {
             break;
         case obj_FUNCTION:
             dest->m_func.params = ast_deepcpy_fn_params(src->m_func.params);
-            dest->m_func.body = deepcopy_stmt(src->m_func.body);
+            dest->m_func.body = ast_deepcopy_stmt(src->m_func.body);
             dest->m_func.env = obj_env_deepcpy(src->m_func.env);
             break;
         default:

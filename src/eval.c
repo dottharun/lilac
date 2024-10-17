@@ -248,7 +248,7 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
             obj = obj_alloc_object(obj_FUNCTION);
             obj->m_func.params =
                 ast_deepcpy_fn_params(expr->data.fn_lit.params_da);
-            obj->m_func.body = deepcopy_stmt(expr->data.fn_lit.body);
+            obj->m_func.body = ast_deepcopy_stmt(expr->data.fn_lit.body);
             obj->m_func.env = obj_env_deepcpy(env);
             break;
         case ast_CALL_EXPR:
