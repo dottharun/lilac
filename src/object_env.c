@@ -4,6 +4,13 @@
 obj_Env *obj_alloc_env() {
     obj_Env *env = malloc(sizeof(obj_Env));
     env->store = NULL;
+    env->outer = NULL;
+    return env;
+}
+
+obj_Env *obj_alloc_enclosed_env(obj_Env *outer) {
+    obj_Env *env = obj_alloc_env();
+    env->outer = obj_env_deepcpy(outer);
     return env;
 }
 
@@ -11,11 +18,14 @@ void obj_free_env(obj_Env *obj) {
     if (obj == NULL)
         return;
     stbds_arrfree(obj->store);
+    obj_free_env(obj->outer);
     free(obj);
 }
 
 obj_Env *obj_env_deepcpy(obj_Env *obj) {
-    obj_Env *res = NULL;
+    if (obj == NULL)
+        return NULL;
+    obj_Env *res = obj_alloc_env();
 
     for (int i = 0; i < stbds_arrlen(obj->store); ++i) {
         obj_Env_elem elem = {
@@ -24,6 +34,10 @@ obj_Env *obj_env_deepcpy(obj_Env *obj) {
         };
         stbds_arrput(res->store, elem);
     }
+
+    // copy outer
+    res->outer = obj_env_deepcpy(obj->outer);
+
     return res;
 }
 

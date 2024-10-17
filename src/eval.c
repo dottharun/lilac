@@ -165,7 +165,9 @@ obj_Object **eval_expressions(struct ast_Expr **expr_da, obj_Env *env) {
         struct ast_Expr *expr = expr_da[i];
         obj_Object *evaluated = eval_expr(expr, env);
         if (obj_is_err(evaluated)) {
+            // FIXME: free correctly or use arena
             stbds_arrfree(obj_da);
+
             obj_da = NULL;
             stbds_arrput(obj_da, evaluated);
             return obj_da;
@@ -174,6 +176,32 @@ obj_Object **eval_expressions(struct ast_Expr **expr_da, obj_Env *env) {
     }
 
     return obj_da;
+}
+
+obj_Env *eval_extend_func_env(obj_Object *func, obj_Object **args) {
+    obj_Env *env = obj_alloc_enclosed_env(func->m_func.env);
+
+    for (int i = 0; i < stbds_arrlen(func->m_func.params); ++i) {
+        obj_env_set(env, func->m_func.params[i]->data.ident.value, args[i]);
+    }
+    return env;
+}
+
+obj_Object *eval_unwrap_return_val(obj_Object *obj) {
+    if (obj->type == obj_RETURN_VALUE) {
+        return obj->m_return_obj;
+    }
+    return obj;
+}
+
+obj_Object *eval_apply_func(obj_Object *func, obj_Object **args) {
+    if (func->type != obj_FUNCTION) {
+        return obj_alloc_err_object("not a function: xoxo");
+    }
+
+    obj_Env *extended_env = eval_extend_func_env(func, args);
+    obj_Object *evaluated = eval_stmt(func->m_func.body, extended_env);
+    return eval_unwrap_return_val(evaluated);
 }
 
 obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
@@ -233,6 +261,7 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
             if (stbds_arrlen(args) == 1 && obj_is_err(args[0])) {
                 return args[0];
             }
+            obj = eval_apply_func(func, args);
             break;
         default:
             assert(0 && "unreachable");

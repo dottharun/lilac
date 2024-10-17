@@ -11,7 +11,11 @@ typedef struct {
 
 typedef struct obj_Env {
     obj_Env_elem *store;
+    struct obj_Env *outer;
 } obj_Env;
+
+obj_Env *obj_alloc_env();
+obj_Env *obj_alloc_enclosed_env(obj_Env *outer);
 
 void obj_free_env(obj_Env *obj);
 

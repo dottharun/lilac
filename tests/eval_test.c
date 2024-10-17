@@ -22,6 +22,7 @@ obj_Object *test_eval(char *input) {
 }
 
 bool test_int_obj(obj_Object *obj, int expected) {
+    assert(obj != NULL);
     assert(obj->type == obj_INTEGER);
     assert(obj->m_int == expected);
     return true;
@@ -293,6 +294,29 @@ TEST eval_test_func_obj(void) {
     obj_free_object(evaluated);
     PASS();
 }
+
+TEST eval_test_fn_appln(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "let identity = fn(x) { x; }; identity(5);", 5 },
+        { "let identity = fn(x) { return x; }; identity(5);", 5 },
+        { "let double = fn(x) { x * 2; }; double(5);", 10 },
+        { "let add = fn(x, y) { x + y; }; add(5, 5);", 10 },
+        { "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20 },
+        { "fn(x) { x; }(5)", 5 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        ASSERT(test_int_obj(evaluated, tests[i].expected));
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -303,4 +327,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_err_handling);
     RUN_TEST(eval_test_let_stmt);
     RUN_TEST(eval_test_func_obj);
+    RUN_TEST(eval_test_fn_appln);
 }
