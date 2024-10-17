@@ -13,7 +13,12 @@ obj_Object *test_eval(char *input) {
     par_parse_program(parser, program);
     obj_Env *env = obj_alloc_env();
 
-    return eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
+    obj_Object *res =
+        eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
+    par_free_parser(parser);
+    ast_free_program(program);
+    obj_free_env(env);
+    return res;
 }
 
 bool test_int_obj(obj_Object *obj, int expected) {
@@ -277,6 +282,17 @@ TEST eval_test_let_stmt(void) {
     PASS();
 }
 
+TEST eval_test_func_obj(void) {
+    char *input = "fn(x, y) { x + 2; };";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT_EQ(2, stbds_arrlen(evaluated->m_func.params));
+    ASSERT_STR_EQ("x", ast_make_expr_str(evaluated->m_func.params[0]));
+    ASSERT_STR_EQ("(x + 2)", ast_make_stmt_str(evaluated->m_func.body));
+
+    obj_free_object(evaluated);
+    PASS();
+}
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -286,4 +302,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_ret_stmt);
     RUN_TEST(eval_test_err_handling);
     RUN_TEST(eval_test_let_stmt);
+    RUN_TEST(eval_test_func_obj);
 }

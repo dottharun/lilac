@@ -1,19 +1,30 @@
 #pragma once
-#include "object.c"
-
-typedef struct {
-    char *key;
-    obj_Object *value;
-} obj_Env_elem;
-
-typedef struct {
-    obj_Env_elem *store;
-} obj_Env;
+#include "object_env.h"
 
 obj_Env *obj_alloc_env() {
     obj_Env *env = malloc(sizeof(obj_Env));
     env->store = NULL;
     return env;
+}
+
+void obj_free_env(obj_Env *obj) {
+    if (obj == NULL)
+        return;
+    stbds_arrfree(obj->store);
+    free(obj);
+}
+
+obj_Env *obj_env_deepcpy(obj_Env *obj) {
+    obj_Env *res = NULL;
+
+    for (int i = 0; i < stbds_arrlen(obj->store); ++i) {
+        obj_Env_elem elem = {
+            .key = util_str_deepcopy(obj->store[i].key),
+            .value = obj_deepcpy(obj->store[i].value),
+        };
+        stbds_arrput(res->store, elem);
+    }
+    return res;
 }
 
 // FIXME: convert to hashmap for better perf
@@ -50,6 +61,7 @@ void obj_env_set(obj_Env *env, gbString name, obj_Object *val) {
     }
 
     if (found_idx != -1) {
+        // FIXME: free previous or use arena
         env->store[found_idx].value = obj_deepcpy(val);
     } else {
         obj_Env_elem elem = {

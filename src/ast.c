@@ -1,6 +1,103 @@
 #pragma once
 #include "ast.h"
 
+struct ast_Expr **ast_deepcpy_fn_params(struct ast_Expr **params) {
+    struct ast_Expr **res_da = NULL;
+
+    for (int i = 0; i < stbds_arrlen(params); ++i) {
+        struct ast_Expr *elem = deepcopy_expr(params[i]);
+        stbds_arrput(res_da, elem);
+    }
+    return res_da;
+}
+
+struct ast_Expr *deepcopy_expr(const struct ast_Expr *expr) {
+    if (expr == NULL)
+        return NULL;
+    struct ast_Expr *new_expr = malloc(sizeof(struct ast_Expr));
+    memcpy(new_expr, expr, sizeof(struct ast_Expr));
+
+    switch (expr->tag) {
+        case ast_IDENT_EXPR:
+        case ast_INT_LIT_EXPR:
+        case ast_BOOL_EXPR:
+            break;
+
+        case ast_PREFIX_EXPR:
+            new_expr->data.pf.right = deepcopy_expr(expr->data.pf.right);
+            break;
+
+        case ast_INFIX_EXPR:
+            new_expr->data.inf.left = deepcopy_expr(expr->data.inf.left);
+            new_expr->data.inf.right = deepcopy_expr(expr->data.inf.right);
+            break;
+
+        case ast_IF_EXPR:
+            new_expr->data.ife.cond = deepcopy_expr(expr->data.ife.cond);
+            new_expr->data.ife.conseq = deepcopy_stmt(expr->data.ife.conseq);
+            new_expr->data.ife.alt = deepcopy_stmt(expr->data.ife.alt);
+            break;
+
+        case ast_FN_LIT_EXPR: {
+            new_expr->data.fn_lit.params_da = NULL;
+            for (int i = 0; i < stbds_arrlen(expr->data.fn_lit.params_da);
+                 i++) {
+                struct ast_Expr *elem =
+                    deepcopy_expr(expr->data.fn_lit.params_da[i]);
+                stbds_arrput(new_expr->data.fn_lit.params_da, elem);
+            }
+            new_expr->data.fn_lit.body = deepcopy_stmt(expr->data.fn_lit.body);
+            break;
+        }
+
+        case ast_CALL_EXPR: {
+            new_expr->data.call.func = deepcopy_expr(expr->data.call.func);
+            new_expr->data.call.args_da = NULL;
+            for (int i = 0; i < stbds_arrlen(expr->data.call.args_da); i++) {
+                struct ast_Expr *elem =
+                    deepcopy_expr(expr->data.call.args_da[i]);
+                stbds_arrput(new_expr->data.call.args_da, elem);
+            }
+            break;
+        }
+    }
+
+    return new_expr;
+}
+
+struct ast_Stmt *deepcopy_stmt(const struct ast_Stmt *stmt) {
+    if (stmt == NULL)
+        return NULL;
+
+    struct ast_Stmt *new_stmt = malloc(sizeof(struct ast_Stmt));
+    memcpy(new_stmt, stmt, sizeof(struct ast_Stmt));
+
+    switch (stmt->tag) {
+        case ast_LET_STMT:
+            new_stmt->data.let.name = deepcopy_expr(stmt->data.let.name);
+            new_stmt->data.let.value = deepcopy_expr(stmt->data.let.value);
+            break;
+        case ast_RET_STMT:
+            new_stmt->data.ret.ret_val = deepcopy_expr(stmt->data.ret.ret_val);
+            break;
+        case ast_EXPR_STMT:
+            new_stmt->data.expr.expr = deepcopy_expr(stmt->data.expr.expr);
+            break;
+        case ast_BLOCK_STMT: {
+
+            new_stmt->data.block.stmts_da = NULL;
+            for (int i = 0; i < stbds_arrlen(stmt->data.block.stmts_da); i++) {
+                struct ast_Stmt *elem =
+                    deepcopy_stmt(stmt->data.block.stmts_da[i]);
+                stbds_arrput(new_stmt->data.block.stmts_da, elem);
+            }
+            break;
+        }
+    }
+
+    return new_stmt;
+}
+
 void ast_free_expr(struct ast_Expr *expr) {
     if (expr == NULL)
         return;

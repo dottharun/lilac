@@ -1,4 +1,6 @@
 #pragma once
+#include "ast.h"
+#include "object_env.h"
 #include "util.c"
 
 #include <stdarg.h>
@@ -42,6 +44,12 @@ typedef struct obj_Object {
         bool m_bool;
         struct obj_Object *m_return_obj;
         gbString m_err_msg;
+
+        struct {
+            struct ast_Expr **params; // only identifiers
+            struct ast_Stmt *body; // only block stmts
+            obj_Env *env;
+        } m_func;
     };
 } obj_Object;
 
@@ -88,6 +96,14 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
         case obj_RETURN_VALUE:
             obj = malloc(sizeof(obj_Object));
             obj->type = obj_RETURN_VALUE;
+            obj->m_return_obj = NULL;
+            break;
+        case obj_FUNCTION:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_FUNCTION;
+            obj->m_func.params = NULL;
+            obj->m_func.body = NULL;
+            obj->m_func.env = NULL;
             break;
         case obj_BOOLEAN: // should use the native objects
         case obj_ERROR: // use its own func
@@ -116,6 +132,15 @@ void obj_free_object(obj_Object *obj) {
             gb_free_string(obj->m_err_msg);
             free(obj);
             break;
+        case obj_FUNCTION:
+            for (int i = 0; i < stbds_arrlen(obj->m_func.params); ++i) {
+                ast_free_expr(obj->m_func.params[i]);
+            }
+            stbds_arrfree(obj->m_func.params);
+            ast_free_stmt(obj->m_func.body);
+            obj_free_env(obj->m_func.env);
+            free(obj);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -136,6 +161,11 @@ obj_Object *obj_deepcpy(obj_Object *src) {
             break;
         case obj_RETURN_VALUE:
             dest->m_return_obj = obj_deepcpy(src->m_return_obj);
+            break;
+        case obj_FUNCTION:
+            dest->m_func.params = ast_deepcpy_fn_params(src->m_func.params);
+            dest->m_func.body = deepcopy_stmt(src->m_func.body);
+            dest->m_func.env = obj_env_deepcpy(src->m_func.env);
             break;
         default:
             assert(0 && "unreachable");
@@ -181,6 +211,21 @@ gbString obj_object_inspect(obj_Object *obj) {
         case obj_ERROR:
             res = gb_append_cstring(res, "ERROR: ");
             res = gb_append_string(res, obj->m_err_msg);
+            break;
+        case obj_FUNCTION:
+            res = gb_append_cstring(res, "fn(");
+            for (int i = 0; i < stbds_arrlen(obj->m_func.params); ++i) {
+                struct ast_Expr *param = obj->m_func.params[i];
+                assert(param->tag == ast_IDENT_EXPR);
+                res = gb_append_cstring(res, param->data.ident.value);
+                if (i == stbds_arrlen(obj->m_func.params) - 1) {
+                    break;
+                }
+                res = gb_append_cstring(res, ", ");
+            }
+            res = gb_append_cstring(res, ") {\n");
+            res = gb_append_cstring(res, ast_make_stmt_str(obj->m_func.body));
+            res = gb_append_cstring(res, "\n}");
             break;
         default:
             assert(0 && "unreachable");

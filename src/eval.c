@@ -1,7 +1,5 @@
 #include "eval.h"
 
-#include "object_env.c"
-
 obj_Object *eval_bang_operator_expr(obj_Object *right) {
     if (obj_is_same(right, &TRUE_OBJECT)) {
         return obj_native_bool_object(false);
@@ -160,11 +158,32 @@ obj_Object *eval_identifier(struct ast_Expr *ident_expr, obj_Env *env) {
     return val;
 }
 
+obj_Object **eval_expressions(struct ast_Expr **expr_da, obj_Env *env) {
+    obj_Object **obj_da = NULL;
+
+    for (int i = 0; i < stbds_arrlen(expr_da); ++i) {
+        struct ast_Expr *expr = expr_da[i];
+        obj_Object *evaluated = eval_expr(expr, env);
+        if (obj_is_err(evaluated)) {
+            stbds_arrfree(obj_da);
+            obj_da = NULL;
+            stbds_arrput(obj_da, evaluated);
+            return obj_da;
+        }
+        stbds_arrput(obj_da, evaluated);
+    }
+
+    return obj_da;
+}
+
 obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
     obj_Object *obj = NULL;
 
     obj_Object *left = NULL;
     obj_Object *right = NULL;
+
+    obj_Object *func = NULL;
+    obj_Object **args = NULL;
     switch (expr->tag) {
         case ast_INT_LIT_EXPR:
             obj = obj_alloc_object(obj_INTEGER);
@@ -196,6 +215,24 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
             break;
         case ast_IDENT_EXPR:
             obj = eval_identifier(expr, env);
+            break;
+        case ast_FN_LIT_EXPR:
+            obj = obj_alloc_object(obj_FUNCTION);
+            obj->m_func.params =
+                ast_deepcpy_fn_params(expr->data.fn_lit.params_da);
+            obj->m_func.body = deepcopy_stmt(expr->data.fn_lit.body);
+            obj->m_func.env = obj_env_deepcpy(env);
+            break;
+        case ast_CALL_EXPR:
+            func = eval_expr(expr->data.call.func, env);
+            if (obj_is_err(func)) {
+                return func;
+            }
+
+            args = eval_expressions(expr->data.call.args_da, env);
+            if (stbds_arrlen(args) == 1 && obj_is_err(args[0])) {
+                return args[0];
+            }
             break;
         default:
             assert(0 && "unreachable");

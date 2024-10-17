@@ -41,6 +41,7 @@ int util_str_to_int(const char *str, int *result) {
     return 0; // Success
 }
 
+// TODO: convert to strdup and remove
 char *util_str_deepcopy(const char *original) {
     if (original == NULL) {
         return NULL;
