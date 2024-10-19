@@ -63,6 +63,14 @@ struct ast_Expr *ast_deepcopy_expr(const struct ast_Expr *expr) {
             }
             break;
         }
+        case ast_ARR_LIT_EXPR:
+            new_expr->data.arr.elems_da = NULL;
+            for (int i = 0; i < stbds_arrlen(expr->data.arr.elems_da); i++) {
+                struct ast_Expr *elem =
+                    ast_deepcopy_expr(expr->data.arr.elems_da[i]);
+                stbds_arrput(new_expr->data.arr.elems_da, elem);
+            }
+            break;
     }
 
     return new_expr;
@@ -143,6 +151,13 @@ void ast_free_expr(struct ast_Expr *expr) {
 
             ast_free_expr(expr->data.call.func);
             break;
+        case ast_ARR_LIT_EXPR:
+            for (int i = 0; i < stbds_arrlen(expr->data.arr.elems_da); ++i) {
+                struct ast_Expr *elem = expr->data.arr.elems_da[i];
+                ast_free_expr(elem);
+            }
+            stbds_arrfree(expr->data.arr.elems_da);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -175,6 +190,9 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
         case ast_FN_LIT_EXPR:
             expr->data.fn_lit.params_da = NULL;
             expr->data.fn_lit.body = NULL;
+            break;
+        case ast_ARR_LIT_EXPR:
+            expr->data.arr.elems_da = NULL;
             break;
         default:
             assert(0 && "unreachable");
@@ -262,6 +280,21 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             }
 
             str = gb_append_cstring(str, ")");
+            break;
+        case ast_ARR_LIT_EXPR:
+            str = gb_append_cstring(str, "[");
+            struct ast_Expr **elems = expr->data.arr.elems_da;
+            for (int i = 0; i < stbds_arrlen(elems); ++i) {
+                gbString arg = ast_make_expr_str(elems[i]);
+                str = gb_append_string(str, arg);
+                gb_free_string(arg);
+                if (i == stbds_arrlen(elems) - 1) {
+                    break;
+                }
+                str = gb_append_cstring(str, ", ");
+            }
+
+            str = gb_append_cstring(str, "]");
             break;
         default:
             assert(0 && "unreachable");

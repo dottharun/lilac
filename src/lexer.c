@@ -164,6 +164,12 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
         case '"':
             token = tok_create_string_token(lexer);
             break;
+        case '[':
+            token = tok_Token_create(tok_LBRACKET, lexer->ch);
+            break;
+        case ']':
+            token = tok_Token_create(tok_RBRACKET, lexer->ch);
+            break;
         case 0:
             token.type = tok_EOF;
             strcpy(token.literal, "");

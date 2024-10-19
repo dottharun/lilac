@@ -645,6 +645,44 @@ TEST parser_test_string_lit(void) {
     PASS();
 }
 
+TEST parser_test_arr_lit(void) {
+    char input[] = "[1, 2 * 2, 3 + 3]";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *lit = stmt->data.expr.expr;
+    ASSERT(lit != NULL);
+    ASSERT(lit->tag == ast_ARR_LIT_EXPR);
+    ASSERT_EQ_FMT((size_t)3, stbds_arrlen(lit->data.arr.elems_da), "%lu");
+    ASSERT(test_int_literal(lit->data.arr.elems_da[0], 1));
+    ASSERT(test_infix_expr(
+        lit->data.arr.elems_da[1],
+        (expec_u){ .type = TEST_INT, .num = 2 },
+        "*",
+        (expec_u){ .type = TEST_INT, .num = 2 }
+    ));
+    ASSERT(test_infix_expr(
+        lit->data.arr.elems_da[2],
+        (expec_u){ .type = TEST_INT, .num = 3 },
+        "+",
+        (expec_u){ .type = TEST_INT, .num = 3 }
+    ));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -659,4 +697,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_fn_param_parsing);
     RUN_TEST(parser_test_call_expr);
     RUN_TEST(parser_test_string_lit);
+    RUN_TEST(parser_test_arr_lit);
 }
