@@ -1,24 +1,9 @@
 #include "greatest.h"
+#include "test_util.c"
 
 #include "../src/parser.c"
 
 SUITE(parser_suite);
-
-enum test_expected_type {
-    TEST_INT,
-    TEST_STRING,
-    TEST_BOOL
-};
-
-typedef struct {
-    enum test_expected_type type;
-
-    union {
-        char *str;
-        int num;
-        bool flag;
-    };
-} expec_u;
 
 bool test_identifier(struct ast_Expr *ident, const char *val) {
     assert(ident != NULL);

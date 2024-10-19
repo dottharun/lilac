@@ -145,11 +145,19 @@ obj_Object *eval_if_expr(struct ast_Expr *if_expr, obj_Env *env) {
 
 obj_Object *eval_identifier(struct ast_Expr *ident_expr, obj_Env *env) {
     obj_Object *exists = obj_env_get(env, ident_expr->data.ident.value);
+
     if (exists == NULL) {
-        return obj_alloc_err_object(
-            "identifier not found: %s",
-            ident_expr->data.ident.value
-        );
+        obj_Object *builtin =
+            builtin_from_keyword(ident_expr->data.ident.value);
+
+        if (builtin == NULL) {
+            return obj_alloc_err_object(
+                "identifier not found: %s",
+                ident_expr->data.ident.value
+            );
+        }
+
+        return builtin;
     }
 
     obj_Object *val = obj_deepcpy(exists);
@@ -192,14 +200,32 @@ obj_Object *eval_unwrap_return_val(obj_Object *obj) {
     return obj;
 }
 
-obj_Object *eval_apply_func(obj_Object *func, obj_Object **args) {
-    if (func->type != obj_FUNCTION) {
-        return obj_alloc_err_object("not a function: xoxo");
+obj_Object *eval_builtins(obj_Object *func, obj_Object **args) {
+    assert(func->type == obj_BUILTIN);
+
+    switch (func->m_builtin) {
+        case BUILTIN_LEN:
+            return builtin_eval_len(args);
+        default:
+            assert(0 && "unreachable");
     }
 
-    obj_Env *extended_env = eval_extend_func_env(func, args);
-    obj_Object *evaluated = eval_stmt(func->m_func.body, extended_env);
-    return eval_unwrap_return_val(evaluated);
+    return NULL;
+}
+
+obj_Object *eval_apply_func(obj_Object *func, obj_Object **args) {
+    obj_Env *extended_env = NULL;
+
+    switch (func->type) {
+        case obj_FUNCTION:
+            extended_env = eval_extend_func_env(func, args);
+            obj_Object *evaluated = eval_stmt(func->m_func.body, extended_env);
+            return eval_unwrap_return_val(evaluated);
+        case obj_BUILTIN:
+            return eval_builtins(func, args);
+        default:
+            return obj_alloc_err_object("not a function: %d", func->type);
+    }
 }
 
 obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {

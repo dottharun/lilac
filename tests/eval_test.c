@@ -1,4 +1,5 @@
 #include "greatest.h"
+#include "test_util.c"
 
 #include "../src/eval.c"
 #include "../src/object_env.c"
@@ -380,6 +381,40 @@ TEST eval_test_str_concat(void) {
     PASS();
 }
 
+TEST eval_test_builtin_fn(void) {
+    struct {
+        char *input;
+        expec_u expected;
+    } tests[] = {
+        { "len(\"\")", { TEST_INT, .num = 0 } },
+        { "len(\"four\")", { TEST_INT, .num = 4 } },
+        { "len(\"hello world\")", { TEST_INT, .num = 11 } },
+        {
+            "len(1)",
+            { TEST_STRING,
+              .str = "argument to `len` not supported, got obj_INTEGER" },
+        },
+        {
+            "len(\"one\", \"two\")",
+            { TEST_STRING, .str = "wrong number of arguments. got=2, want=1" },
+        },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        if (tests[i].expected.type == TEST_INT) {
+            ASSERT(test_int_obj(evaluated, tests[i].expected.num));
+        } else if (tests[i].expected.type == TEST_STRING) {
+            ASSERT(test_err_obj(evaluated, tests[i].expected.str));
+        } else {
+            FAIL();
+        }
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -395,4 +430,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_recursive_fn);
     RUN_TEST(eval_test_str_lit);
     RUN_TEST(eval_test_str_concat);
+    RUN_TEST(eval_test_builtin_fn);
 }

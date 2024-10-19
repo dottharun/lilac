@@ -52,6 +52,14 @@ typedef struct obj_Object {
         } m_func;
 
         sstring m_str;
+
+        enum {
+            BUILTIN_LEN,
+            BUILTIN_FIRST,
+            BUILTIN_LAST,
+            BUILTIN_REST,
+            BUILTIN_PUSH,
+        } m_builtin;
     };
 } obj_Object;
 
@@ -110,6 +118,10 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
         case obj_STRING:
             obj = malloc(sizeof(obj_Object));
             obj->type = obj_STRING;
+            break;
+        case obj_BUILTIN:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_BUILTIN;
             break;
         case obj_BOOLEAN: // should use the native objects
         case obj_ERROR: // use its own func
@@ -240,6 +252,9 @@ gbString obj_object_inspect(obj_Object *obj) {
             break;
         case obj_STRING:
             res = gb_append_string(res, obj->m_str);
+            break;
+        case obj_BUILTIN:
+            res = gb_append_cstring(res, "builtin function");
             break;
         default:
             assert(0 && "unreachable");
