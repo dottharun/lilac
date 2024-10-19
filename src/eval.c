@@ -80,9 +80,29 @@ eval_int_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
 }
 
 obj_Object *
+eval_str_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
+    if (0 != strcmp(operator, "+")) {
+        obj_Object *res = obj_alloc_err_object(
+            "unknown operator: %s %s %s",
+            obj_object_name(left->type),
+            operator,
+            obj_object_name(right->type)
+        );
+        return res;
+    }
+
+    obj_Object *obj = obj_alloc_object(obj_STRING);
+    strcpy(obj->m_str, left->m_str);
+    strcat(obj->m_str, right->m_str);
+    return obj;
+}
+
+obj_Object *
 eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
     if (left->type == obj_INTEGER && right->type == obj_INTEGER) {
         return eval_int_infix_expr(operator, left, right);
+    } else if (left->type == obj_STRING && right->type == obj_STRING) {
+        return eval_str_infix_expr(operator, left, right);
     } else if (strcmp(operator, "==") == 0) {
         obj_Object *cmp = obj_native_bool_object(obj_is_same(left, right));
         return cmp;

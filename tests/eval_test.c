@@ -258,6 +258,10 @@ if (10 > 1) {            \
             "foobar",
             "identifier not found: foobar",
         },
+        {
+            "\"Hello\" - \"World\"",
+            "unknown operator: obj_STRING - obj_STRING",
+        },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -367,6 +371,15 @@ TEST eval_test_str_lit(void) {
     PASS();
 }
 
+TEST eval_test_str_concat(void) {
+    char input[] = "\"Hello\" + \" \" + \"World!\"";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT(test_str_obj(evaluated, "Hello World!"));
+    obj_free_object(evaluated);
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -381,4 +394,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_closures);
     RUN_TEST(eval_test_recursive_fn);
     RUN_TEST(eval_test_str_lit);
+    RUN_TEST(eval_test_str_concat);
 }

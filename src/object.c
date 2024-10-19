@@ -164,6 +164,7 @@ obj_Object *obj_deepcpy(obj_Object *src) {
         case obj_INTEGER:
         case obj_BOOLEAN:
         case obj_ERROR:
+        case obj_STRING:
             // NOTHING - since no deep ptrs
             break;
         case obj_RETURN_VALUE:
@@ -185,6 +186,7 @@ bool obj_is_err(obj_Object *obj) {
 }
 
 bool obj_is_same(obj_Object *x, obj_Object *y) {
+    // FIXME: doesnt compare deep pointers
     return (memcmp(x, y, sizeof(obj_Object)) == 0);
 }
 
