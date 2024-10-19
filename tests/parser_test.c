@@ -635,6 +635,31 @@ TEST parser_test_call_expr(void) {
     PASS();
 }
 
+TEST parser_test_string_lit(void) {
+    char input[] = "\"hello world\";";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *lit = stmt->data.expr.expr;
+    ASSERT(lit != NULL);
+    ASSERT(lit->tag == ast_STR_LIT_EXPR);
+    ASSERT_STR_EQ(lit->data.str.value, "hello world");
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -648,4 +673,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_fn_literal_expr);
     RUN_TEST(parser_test_fn_param_parsing);
     RUN_TEST(parser_test_call_expr);
+    RUN_TEST(parser_test_string_lit);
 }

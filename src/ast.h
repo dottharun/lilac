@@ -20,6 +20,7 @@ struct ast_Expr {
         ast_IF_EXPR,
         ast_FN_LIT_EXPR,
         ast_CALL_EXPR,
+        ast_STR_LIT_EXPR,
     } tag;
 
     union {
@@ -63,6 +64,10 @@ struct ast_Expr {
             // expr_ptrs da --not sure if its only identifiers or func exprs too
             struct ast_Expr **args_da;
         } call;
+
+        struct ast_Str_lit {
+            sstring value;
+        } str;
     } data;
 };
 

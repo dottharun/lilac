@@ -50,6 +50,8 @@ typedef struct obj_Object {
             struct ast_Stmt *body; // only block stmts
             obj_Env *env;
         } m_func;
+
+        sstring m_str;
     };
 } obj_Object;
 
@@ -105,6 +107,10 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
             obj->m_func.body = NULL;
             obj->m_func.env = NULL;
             break;
+        case obj_STRING:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_STRING;
+            break;
         case obj_BOOLEAN: // should use the native objects
         case obj_ERROR: // use its own func
         default:
@@ -117,6 +123,7 @@ void obj_free_object(obj_Object *obj) {
     if (obj == NULL)
         return;
     switch (obj->type) {
+        case obj_STRING:
         case obj_INTEGER:
             free(obj);
             break;
@@ -228,6 +235,9 @@ gbString obj_object_inspect(obj_Object *obj) {
             res = gb_append_cstring(res, ") {\n");
             res = gb_append_cstring(res, ast_make_stmt_str(obj->m_func.body));
             res = gb_append_cstring(res, "\n}");
+            break;
+        case obj_STRING:
+            res = gb_append_string(res, obj->m_str);
             break;
         default:
             assert(0 && "unreachable");

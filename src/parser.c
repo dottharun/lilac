@@ -185,6 +185,10 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
 
             assert(left_expr->data.fn_lit.body->tag == ast_BLOCK_STMT);
             break;
+        case tok_STRING:
+            left_expr = ast_alloc_expr(ast_STR_LIT_EXPR);
+            strcpy(left_expr->data.str.value, parser->curr_token.literal);
+            break;
         default:
             par_no_prefix_parsing_err(parser, type);
             // assert(0 && "unreachable");

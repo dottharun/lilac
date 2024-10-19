@@ -34,6 +34,12 @@ bool test_bool_obj(obj_Object *obj, bool expected) {
     return true;
 }
 
+bool test_str_obj(obj_Object *obj, const char *expected) {
+    assert(obj->type == obj_STRING);
+    assert(0 == strcmp(obj->m_str, expected));
+    return true;
+}
+
 bool test_null_obj(obj_Object *obj) {
     assert(obj->type == obj_NULL);
     return obj_is_same(obj, obj_null());
@@ -352,6 +358,15 @@ counter(0);                \
     PASS();
 }
 
+TEST eval_test_str_lit(void) {
+    char input[] = "\"Hello World!\";";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT(test_str_obj(evaluated, "Hello World!"));
+    obj_free_object(evaluated);
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -365,4 +380,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_fn_appln);
     RUN_TEST(eval_test_closures);
     RUN_TEST(eval_test_recursive_fn);
+    RUN_TEST(eval_test_str_lit);
 }

@@ -5,66 +5,110 @@
 SUITE(lexer_suite);
 
 TEST lexer_test_next_token(void) {
-    char input[] = "\
-let five = 5;\
-let ten = 10;\
-\
-let add = fn(x, y) {\
-  x + y;\
-};\
-\
-let result = add(five, ten);\
-!-/*5;\
-5 < 10 > 5;\
-\
-if (5 < 10) {\
-	return true;\
-} else {\
-	return false;\
-}\
-\
-10 == 10;\
-10 != 9;\
+    char input[] = "          \
+let five = 5;                 \
+let ten = 10;                 \
+                              \
+let add = fn(x, y) {          \
+  x + y;                      \
+};                            \
+                              \
+let result = add(five, ten);  \
+!-/*5;                        \
+5 < 10 > 5;                   \
+                              \
+if (5 < 10) {                 \
+	return true;              \
+} else {                      \
+	return false;             \
+}                             \
+                              \
+10 == 10;                     \
+10 != 9;                      \
+\"foobar\"                    \
+\"foo bar\"                   \
 ";
 
     struct tok_Token expected_tokens[] = {
-        { tok_LET, "let" },     { tok_IDENT, "five" },
-        { tok_ASSIGN, "=" },    { tok_INT, "5" },
-        { tok_SEMICOLON, ";" }, { tok_LET, "let" },
-        { tok_IDENT, "ten" },   { tok_ASSIGN, "=" },
-        { tok_INT, "10" },      { tok_SEMICOLON, ";" },
-        { tok_LET, "let" },     { tok_IDENT, "add" },
-        { tok_ASSIGN, "=" },    { tok_FUNCTION, "fn" },
-        { tok_LPAREN, "(" },    { tok_IDENT, "x" },
-        { tok_COMMA, "," },     { tok_IDENT, "y" },
-        { tok_RPAREN, ")" },    { tok_LBRACE, "{" },
-        { tok_IDENT, "x" },     { tok_PLUS, "+" },
-        { tok_IDENT, "y" },     { tok_SEMICOLON, ";" },
-        { tok_RBRACE, "}" },    { tok_SEMICOLON, ";" },
-        { tok_LET, "let" },     { tok_IDENT, "result" },
-        { tok_ASSIGN, "=" },    { tok_IDENT, "add" },
-        { tok_LPAREN, "(" },    { tok_IDENT, "five" },
-        { tok_COMMA, "," },     { tok_IDENT, "ten" },
-        { tok_RPAREN, ")" },    { tok_SEMICOLON, ";" },
-        { tok_BANG, "!" },      { tok_MINUS, "-" },
-        { tok_SLASH, "/" },     { tok_ASTERISK, "*" },
-        { tok_INT, "5" },       { tok_SEMICOLON, ";" },
-        { tok_INT, "5" },       { tok_LT, "<" },
-        { tok_INT, "10" },      { tok_GT, ">" },
-        { tok_INT, "5" },       { tok_SEMICOLON, ";" },
-        { tok_IF, "if" },       { tok_LPAREN, "(" },
-        { tok_INT, "5" },       { tok_LT, "<" },
-        { tok_INT, "10" },      { tok_RPAREN, ")" },
-        { tok_LBRACE, "{" },    { tok_RETURN, "return" },
-        { tok_TRUE, "true" },   { tok_SEMICOLON, ";" },
-        { tok_RBRACE, "}" },    { tok_ELSE, "else" },
-        { tok_LBRACE, "{" },    { tok_RETURN, "return" },
-        { tok_FALSE, "false" }, { tok_SEMICOLON, ";" },
-        { tok_RBRACE, "}" },    { tok_INT, "10" },
-        { tok_EQ, "==" },       { tok_INT, "10" },
-        { tok_SEMICOLON, ";" }, { tok_INT, "10" },
-        { tok_NOT_EQ, "!=" },   { tok_INT, "9" },
-        { tok_SEMICOLON, ";" }, { tok_EOF, "" },
+        { tok_LET, "let" },
+        { tok_IDENT, "five" },
+        { tok_ASSIGN, "=" },
+        { tok_INT, "5" },
+        { tok_SEMICOLON, ";" },
+        { tok_LET, "let" },
+        { tok_IDENT, "ten" },
+        { tok_ASSIGN, "=" },
+        { tok_INT, "10" },
+        { tok_SEMICOLON, ";" },
+        { tok_LET, "let" },
+        { tok_IDENT, "add" },
+        { tok_ASSIGN, "=" },
+        { tok_FUNCTION, "fn" },
+        { tok_LPAREN, "(" },
+        { tok_IDENT, "x" },
+        { tok_COMMA, "," },
+        { tok_IDENT, "y" },
+        { tok_RPAREN, ")" },
+        { tok_LBRACE, "{" },
+        { tok_IDENT, "x" },
+        { tok_PLUS, "+" },
+        { tok_IDENT, "y" },
+        { tok_SEMICOLON, ";" },
+        { tok_RBRACE, "}" },
+        { tok_SEMICOLON, ";" },
+        { tok_LET, "let" },
+        { tok_IDENT, "result" },
+        { tok_ASSIGN, "=" },
+        { tok_IDENT, "add" },
+        { tok_LPAREN, "(" },
+        { tok_IDENT, "five" },
+        { tok_COMMA, "," },
+        { tok_IDENT, "ten" },
+        { tok_RPAREN, ")" },
+        { tok_SEMICOLON, ";" },
+        { tok_BANG, "!" },
+        { tok_MINUS, "-" },
+        { tok_SLASH, "/" },
+        { tok_ASTERISK, "*" },
+        { tok_INT, "5" },
+        { tok_SEMICOLON, ";" },
+        { tok_INT, "5" },
+        { tok_LT, "<" },
+        { tok_INT, "10" },
+        { tok_GT, ">" },
+        { tok_INT, "5" },
+        { tok_SEMICOLON, ";" },
+        //
+        { tok_IF, "if" },
+        { tok_LPAREN, "(" },
+        { tok_INT, "5" },
+        { tok_LT, "<" },
+        { tok_INT, "10" },
+        { tok_RPAREN, ")" },
+        { tok_LBRACE, "{" },
+        { tok_RETURN, "return" },
+        { tok_TRUE, "true" },
+        { tok_SEMICOLON, ";" },
+        { tok_RBRACE, "}" },
+        { tok_ELSE, "else" },
+        { tok_LBRACE, "{" },
+        { tok_RETURN, "return" },
+        { tok_FALSE, "false" },
+        { tok_SEMICOLON, ";" },
+        { tok_RBRACE, "}" },
+        //
+        { tok_INT, "10" },
+        { tok_EQ, "==" },
+        { tok_INT, "10" },
+        { tok_SEMICOLON, ";" },
+        { tok_INT, "10" },
+        { tok_NOT_EQ, "!=" },
+        { tok_INT, "9" },
+        { tok_SEMICOLON, ";" },
+        //
+        { tok_STRING, "foobar" },
+        { tok_STRING, "foo bar" },
+        { tok_EOF, "" },
     };
     int expected_tokens_len =
         sizeof(expected_tokens) / sizeof(expected_tokens[0]);

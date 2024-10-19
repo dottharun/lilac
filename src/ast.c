@@ -21,6 +21,7 @@ struct ast_Expr *ast_deepcopy_expr(const struct ast_Expr *expr) {
         case ast_IDENT_EXPR:
         case ast_INT_LIT_EXPR:
         case ast_BOOL_EXPR:
+        case ast_STR_LIT_EXPR:
             break;
 
         case ast_PREFIX_EXPR:
@@ -108,6 +109,7 @@ void ast_free_expr(struct ast_Expr *expr) {
         case ast_IDENT_EXPR:
         case ast_INT_LIT_EXPR:
         case ast_BOOL_EXPR:
+        case ast_STR_LIT_EXPR:
             // NOTHING
             break;
         case ast_PREFIX_EXPR:
@@ -155,6 +157,7 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
         case ast_IDENT_EXPR:
         case ast_INT_LIT_EXPR:
         case ast_BOOL_EXPR:
+        case ast_STR_LIT_EXPR:
             // NOTHING
             break;
         case ast_PREFIX_EXPR:
@@ -190,6 +193,7 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             break;
         case ast_INT_LIT_EXPR:
         case ast_BOOL_EXPR:
+        case ast_STR_LIT_EXPR:
             str = gb_append_cstring(str, expr->token.literal);
             break;
         case ast_PREFIX_EXPR:

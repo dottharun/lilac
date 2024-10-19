@@ -79,6 +79,28 @@ char lex_peek_char(struct lex_Lexer *lexer) {
     return lexer->input[lexer->read_position];
 }
 
+struct tok_Token tok_create_string_token(struct lex_Lexer *lexer) {
+    struct tok_Token tok = { .type = tok_STRING };
+
+    int position = lexer->position + 1;
+    while (1) {
+        lex_read_char(lexer);
+        if (lexer->ch == '"' || lexer->ch == '\0') {
+            break;
+        }
+    }
+
+    // copy string part from input position
+    memcpy(
+        tok.literal,
+        lexer->input + position,
+        (lexer->position - position) * sizeof(char)
+    );
+    tok.literal[lexer->position - position] = '\0';
+
+    return tok;
+}
+
 struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
     struct tok_Token token;
 
@@ -138,6 +160,9 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
             break;
         case '}':
             token = tok_Token_create(tok_RBRACE, lexer->ch);
+            break;
+        case '"':
+            token = tok_create_string_token(lexer);
             break;
         case 0:
             token.type = tok_EOF;

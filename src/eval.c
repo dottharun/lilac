@@ -241,6 +241,10 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
             }
             obj = eval_apply_func(func, args);
             break;
+        case ast_STR_LIT_EXPR:
+            obj = obj_alloc_object(obj_STRING);
+            strcpy(obj->m_str, expr->data.str.value);
+            break;
         default:
             assert(0 && "unreachable");
     }
