@@ -333,6 +333,25 @@ addTwo(22);                \
     PASS();
 }
 
+TEST eval_test_recursive_fn(void) {
+    char *input = "        \
+let counter = fn(x) {      \
+    if (x > 3) {           \
+        return 999;        \
+    } else {               \
+        let foobar = 9999; \
+        counter(x + 1);    \
+    }                      \
+};                         \
+counter(0);                \
+";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT(test_int_obj(evaluated, 999));
+    obj_free_object(evaluated);
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -345,4 +364,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_func_obj);
     RUN_TEST(eval_test_fn_appln);
     RUN_TEST(eval_test_closures);
+    RUN_TEST(eval_test_recursive_fn);
 }

@@ -46,39 +46,27 @@ obj_Object *
 eval_int_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
     if (strcmp(operator, "+") == 0) {
         left->m_int += right->m_int;
-        obj_free_object(right);
         return left;
     } else if (strcmp(operator, "-") == 0) {
         left->m_int -= right->m_int;
-        obj_free_object(right);
         return left;
     } else if (strcmp(operator, "*") == 0) {
         left->m_int *= right->m_int;
-        obj_free_object(right);
         return left;
     } else if (strcmp(operator, "/") == 0) {
         left->m_int /= right->m_int;
-        obj_free_object(right);
         return left;
     } else if (strcmp(operator, "<") == 0) {
         obj_Object *cmp = obj_native_bool_object(left->m_int < right->m_int);
-        obj_free_object(left);
-        obj_free_object(right);
         return cmp;
     } else if (strcmp(operator, ">") == 0) {
         obj_Object *cmp = obj_native_bool_object(left->m_int > right->m_int);
-        obj_free_object(left);
-        obj_free_object(right);
         return cmp;
     } else if (strcmp(operator, "==") == 0) {
         obj_Object *cmp = obj_native_bool_object(left->m_int == right->m_int);
-        obj_free_object(left);
-        obj_free_object(right);
         return cmp;
     } else if (strcmp(operator, "!=") == 0) {
         obj_Object *cmp = obj_native_bool_object(left->m_int != right->m_int);
-        obj_free_object(left);
-        obj_free_object(right);
         return cmp;
     } else {
         obj_Object *res = obj_alloc_err_object(
@@ -87,8 +75,6 @@ eval_int_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
             operator,
             obj_object_name(right->type)
         );
-        obj_free_object(right);
-        obj_free_object(left);
         return res;
     }
 }
@@ -99,13 +85,9 @@ eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
         return eval_int_infix_expr(operator, left, right);
     } else if (strcmp(operator, "==") == 0) {
         obj_Object *cmp = obj_native_bool_object(obj_is_same(left, right));
-        obj_free_object(right);
-        obj_free_object(left);
         return cmp;
     } else if (strcmp(operator, "!=") == 0) {
         obj_Object *cmp = obj_native_bool_object(!obj_is_same(left, right));
-        obj_free_object(right);
-        obj_free_object(left);
         return cmp;
     } else if (left->type != right->type) {
         obj_Object *res = obj_alloc_err_object(
@@ -114,8 +96,6 @@ eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
             operator,
             obj_object_name(right->type)
         );
-        obj_free_object(right);
-        obj_free_object(left);
         return res;
     } else {
         obj_Object *res = obj_alloc_err_object(
@@ -124,8 +104,6 @@ eval_infix_expr(char *operator, obj_Object * left, obj_Object *right) {
             operator,
             obj_object_name(right->type)
         );
-        obj_free_object(right);
-        obj_free_object(left);
         return res;
     }
 }
@@ -307,6 +285,15 @@ obj_Object *eval_stmt(struct ast_Stmt *stmt, obj_Env *env) {
             if (obj_is_err(val)) {
                 return val;
             }
+
+            if (val->type == obj_FUNCTION) {
+                obj_env_set(
+                    val->m_func.env,
+                    stmt->data.let.name->data.ident.value,
+                    val
+                );
+            }
+
             obj_env_set(env, stmt->data.let.name->data.ident.value, val);
             break;
         default:

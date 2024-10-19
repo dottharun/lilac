@@ -165,7 +165,7 @@ obj_Object *obj_deepcpy(obj_Object *src) {
         case obj_FUNCTION:
             dest->m_func.params = ast_deepcpy_fn_params(src->m_func.params);
             dest->m_func.body = ast_deepcopy_stmt(src->m_func.body);
-            dest->m_func.env = obj_env_deepcpy(src->m_func.env);
+            dest->m_func.env = (src->m_func.env);
             break;
         default:
             assert(0 && "unreachable");
@@ -194,6 +194,8 @@ bool obj_is_truthy(obj_Object *obj) {
 }
 
 gbString obj_object_inspect(obj_Object *obj) {
+    if (obj == NULL)
+        return NULL;
     gbString res = gb_make_string("");
     switch (obj->type) {
         case obj_INTEGER:

@@ -20,3 +20,8 @@ obj_Env *obj_alloc_enclosed_env(obj_Env *outer);
 void obj_free_env(obj_Env *obj);
 
 obj_Env *obj_env_deepcpy(obj_Env *obj);
+
+obj_Object *obj_env_get(obj_Env *env, gbString name);
+void obj_env_set(obj_Env *env, gbString name, obj_Object *val);
+
+void obj_print_env(obj_Env *env);

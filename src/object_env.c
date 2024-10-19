@@ -42,7 +42,7 @@ obj_Env *obj_env_deepcpy(obj_Env *obj) {
 }
 
 // FIXME: convert to hashmap for better perf
-obj_Object *obj_env_get(obj_Env *env, gbString name) {
+obj_Object *obj_env_get(obj_Env *env, char *name) {
     if (env == NULL)
         return NULL;
 
@@ -60,16 +60,20 @@ obj_Object *obj_env_get(obj_Env *env, gbString name) {
 }
 
 // Helper function
-void printarr(obj_Env_elem *store) {
-    printf("\nprinting arr");
-    for (int i = 0; i < stbds_arrlen(store); ++i) {
+void obj_print_env(obj_Env *env) {
+    if (env == NULL)
+        return;
+
+    printf(env->store ? "\ninner env:" : "");
+    for (int i = 0; i < stbds_arrlen(env->store); ++i) {
         printf(
             "\n %d elem: key - %s, val - %s",
             i,
-            store[i].key,
-            obj_object_inspect(store[i].value)
+            env->store[i].key,
+            obj_object_inspect(env->store[i].value)
         );
     }
+    obj_print_env(env->outer);
 }
 
 void obj_env_set(obj_Env *env, gbString name, obj_Object *val) {

@@ -110,6 +110,9 @@ struct ast_Expr *ast_deepcopy_expr(const struct ast_Expr *expr);
 struct ast_Stmt *ast_deepcopy_stmt(const struct ast_Stmt *stmt);
 struct ast_Expr **ast_deepcpy_fn_params(struct ast_Expr **params);
 
+gbString ast_make_expr_str(struct ast_Expr *expr);
+gbString ast_make_stmt_str(struct ast_Stmt *stmt);
+
 struct ast_Program {
     // dynamic array of statement_ptrs
     struct ast_Stmt **statement_ptrs_da;

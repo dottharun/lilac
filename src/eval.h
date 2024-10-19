@@ -1,6 +1,6 @@
-#include "ast.c"
+#include "ast.h"
 #include "object.c"
-#include "object_env.c"
+#include "object_env.h"
 
 obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env);
 
