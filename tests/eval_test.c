@@ -398,24 +398,61 @@ TEST eval_test_builtin_fn(void) {
         { "len(\"\")", { TEST_INT, .num = 0 } },
         { "len(\"four\")", { TEST_INT, .num = 4 } },
         { "len(\"hello world\")", { TEST_INT, .num = 11 } },
+        { "len(1)",
+          { TEST_STRING,
+            .str = "argument to `len` not supported, got obj_INTEGER" } },
+        { "len(\"one\", \"two\")",
+          { TEST_STRING, .str = "wrong number of arguments. got=2, want=1" } },
+        { "len([1, 2, 3])", { TEST_INT, .num = 3 } },
+        { "len([])", { TEST_INT, .num = 0 } },
+
+        // first function tests
+        { "first([1, 2, 3])", { TEST_INT, .num = 1 } },
+        { "first([])", { TEST_INT, .num = nil } },
+        { "first(1)",
+          { TEST_STRING,
+            .str = "argument to `first` must be obj_ARRAY, got obj_INTEGER" } },
+
+        // last function tests
+        { "last([1, 2, 3])", { TEST_INT, .num = 3 } },
+        { "last([])", { TEST_INT, .num = nil } },
+        { "last(1)",
+          { TEST_STRING,
+            .str = "argument to `last` must be obj_ARRAY, got obj_INTEGER" } },
+
+        // rest function tests
         {
-            "len(1)",
-            { TEST_STRING,
-              .str = "argument to `len` not supported, got obj_INTEGER" },
+            "rest([1, 2, 3])",
+            { TEST_ARRAY, .arr = { .elems = (int[]){ 2, 3 }, .n = 2 } },
         },
-        {
-            "len(\"one\", \"two\")",
-            { TEST_STRING, .str = "wrong number of arguments. got=2, want=1" },
-        },
+        { "rest([])", { TEST_INT, .num = nil } },
+
+        // push function tests
+        { "push([], 1)",
+          { TEST_ARRAY, .arr = { .elems = (int[]){ 1 }, .n = 1 } } },
+        { "push(1, 1)",
+          { TEST_STRING,
+            .str = "argument to `push` must be obj_ARRAY, got obj_INTEGER" } },
+
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
     for (int i = 0; i < n; ++i) {
         obj_Object *evaluated = test_eval(tests[i].input);
-        if (tests[i].expected.type == TEST_INT) {
+
+        if (tests[i].expected.type == TEST_INT &&
+            tests[i].expected.num == nil) {
+            ASSERT(test_null_obj(evaluated));
+        } else if (tests[i].expected.type == TEST_INT) {
             ASSERT(test_int_obj(evaluated, tests[i].expected.num));
         } else if (tests[i].expected.type == TEST_STRING) {
             ASSERT(test_err_obj(evaluated, tests[i].expected.str));
+        } else if (tests[i].expected.type == TEST_ARRAY) {
+            ASSERT(test_arr_obj(
+                evaluated,
+                tests[i].expected.arr.n,
+                tests[i].expected.arr.elems
+            ));
         } else {
             FAIL();
         }

@@ -206,11 +206,17 @@ obj_Object *eval_builtins(obj_Object *func, obj_Object **args) {
     switch (func->m_builtin) {
         case BUILTIN_LEN:
             return builtin_eval_len(args);
+        case BUILTIN_FIRST:
+            return builtin_eval_first(args);
+        case BUILTIN_LAST:
+            return builtin_eval_last(args);
+        case BUILTIN_REST:
+            return builtin_eval_rest(args);
+        case BUILTIN_PUSH:
+            return builtin_eval_push(args);
         default:
             assert(0 && "unreachable");
     }
-
-    return NULL;
 }
 
 obj_Object *eval_apply_func(obj_Object *func, obj_Object **args) {
