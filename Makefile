@@ -1,4 +1,4 @@
-SHELL := /bin/sh -xe
+SHELL := /bin/sh -e
 MAKEFLAGS += -B
 
 CC = clang
