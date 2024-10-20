@@ -228,6 +228,27 @@ obj_Object *eval_apply_func(obj_Object *func, obj_Object **args) {
     }
 }
 
+obj_Object *eval_arr_idx_expr(obj_Object *arr, obj_Object *index) {
+    int idx = index->m_int;
+    int max_idx = stbds_arrlen(arr->m_arr_da) - 1;
+
+    if (idx < 0 || idx > max_idx) {
+        return obj_null();
+    }
+    return arr->m_arr_da[idx];
+}
+
+obj_Object *eval_idx_expr(obj_Object *left, obj_Object *index) {
+    if (left->type == obj_ARRAY && index->type == obj_INTEGER) {
+        return eval_arr_idx_expr(left, index);
+    } else {
+        return obj_alloc_err_object(
+            "index operator not supported: %s",
+            obj_object_name(left->type)
+        );
+    }
+}
+
 obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
     obj_Object *obj = NULL;
 
@@ -290,6 +311,25 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
         case ast_STR_LIT_EXPR:
             obj = obj_alloc_object(obj_STRING);
             strcpy(obj->m_str, expr->data.str.value);
+            break;
+        case ast_ARR_LIT_EXPR:
+            obj = obj_alloc_object(obj_ARRAY);
+            obj_Object **elems = eval_expressions(expr->data.arr.elems_da, env);
+            if (stbds_arrlen(elems) == 1 && obj_is_err(elems[0])) {
+                return elems[0];
+            }
+            obj->m_arr_da = elems;
+            break;
+        case ast_IDX_EXPR:
+            left = eval_expr(expr->data.idx.left, env);
+            if (obj_is_err(left)) {
+                return left;
+            }
+            obj_Object *index = eval_expr(expr->data.idx.index, env);
+            if (obj_is_err(index)) {
+                return index;
+            }
+            obj = eval_idx_expr(left, index);
             break;
         default:
             assert(0 && "unreachable");

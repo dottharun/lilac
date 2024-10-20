@@ -41,6 +41,15 @@ bool test_str_obj(obj_Object *obj, const char *expected) {
     return true;
 }
 
+bool test_arr_obj(obj_Object *obj, int n, int *expected) {
+    assert(obj->type == obj_ARRAY);
+    assert(stbds_arrlen(obj->m_arr_da) == n);
+    for (int i = 0; i < n; ++i) {
+        assert(obj->m_arr_da[i]->m_int == expected[i]);
+    }
+    return true;
+}
+
 bool test_null_obj(obj_Object *obj) {
     assert(obj->type == obj_NULL);
     return obj_is_same(obj, obj_null());
@@ -415,6 +424,45 @@ TEST eval_test_builtin_fn(void) {
     PASS();
 }
 
+TEST eval_test_arr_lit(void) {
+    char input[] = "[1, 2 * 2, 3 + 3]";
+
+    obj_Object *evaluated = test_eval(input);
+    ASSERT(test_arr_obj(evaluated, 3, (int[]){ 1, 4, 6 }));
+    obj_free_object(evaluated);
+    PASS();
+}
+
+TEST eval_test_arr_idx_expr(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "[1, 2, 3][0]", 1 },
+        { "[1, 2, 3][1]", 2 },
+        { "[1, 2, 3][2]", 3 },
+        { "let i = 0; [1][i];", 1 },
+        { "[1, 2, 3][1 + 1];", 3 },
+        { "let myArray = [1, 2, 3]; myArray[2];", 3 },
+        { "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6 },
+        { "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2 },
+        { "[1, 2, 3][3]", nil },
+        { "[1, 2, 3][-1]", nil },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        if (tests[i].expected != nil) {
+            ASSERT(test_int_obj(evaluated, tests[i].expected));
+        } else {
+            ASSERT(test_null_obj(evaluated));
+        }
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -431,4 +479,6 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_str_lit);
     RUN_TEST(eval_test_str_concat);
     RUN_TEST(eval_test_builtin_fn);
+    RUN_TEST(eval_test_arr_lit);
+    RUN_TEST(eval_test_arr_idx_expr);
 }

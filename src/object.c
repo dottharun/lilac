@@ -60,6 +60,8 @@ typedef struct obj_Object {
             BUILTIN_REST,
             BUILTIN_PUSH,
         } m_builtin;
+
+        obj_Object **m_arr_da;
     };
 } obj_Object;
 
@@ -123,6 +125,11 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
             obj = malloc(sizeof(obj_Object));
             obj->type = obj_BUILTIN;
             break;
+        case obj_ARRAY:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_ARRAY;
+            obj->m_arr_da = NULL;
+            break;
         case obj_BOOLEAN: // should use the native objects
         case obj_ERROR: // use its own func
         default:
@@ -137,6 +144,7 @@ void obj_free_object(obj_Object *obj) {
     switch (obj->type) {
         case obj_STRING:
         case obj_INTEGER:
+        case obj_BUILTIN:
             free(obj);
             break;
         case obj_BOOLEAN:
@@ -158,6 +166,13 @@ void obj_free_object(obj_Object *obj) {
             stbds_arrfree(obj->m_func.params);
             ast_free_stmt(obj->m_func.body);
             obj_free_env(obj->m_func.env);
+            free(obj);
+            break;
+        case obj_ARRAY:
+            for (int i = 0; i < stbds_arrlen(obj->m_arr_da); ++i) {
+                obj_free_object(obj->m_arr_da[i]);
+            }
+            stbds_arrfree(obj->m_arr_da);
             free(obj);
             break;
         default:
@@ -186,6 +201,12 @@ obj_Object *obj_deepcpy(obj_Object *src) {
             dest->m_func.params = ast_deepcpy_fn_params(src->m_func.params);
             dest->m_func.body = ast_deepcopy_stmt(src->m_func.body);
             dest->m_func.env = (src->m_func.env);
+            break;
+        case obj_ARRAY:
+            dest->m_arr_da = NULL;
+            for (int i = 0; i < stbds_arrlen(src->m_arr_da); ++i) {
+                stbds_arrput(dest->m_arr_da, obj_deepcpy(src->m_arr_da[i]));
+            }
             break;
         default:
             assert(0 && "unreachable");
@@ -255,6 +276,18 @@ gbString obj_object_inspect(obj_Object *obj) {
             break;
         case obj_BUILTIN:
             res = gb_append_cstring(res, "builtin function");
+            break;
+        case obj_ARRAY:
+            res = gb_append_cstring(res, "[");
+            for (int i = 0; i < stbds_arrlen(obj->m_arr_da); ++i) {
+                obj_Object *elem = obj->m_arr_da[i];
+                res = gb_append_cstring(res, obj_object_inspect(elem));
+                if (i == stbds_arrlen(obj->m_arr_da) - 1) {
+                    break;
+                }
+                res = gb_append_cstring(res, ", ");
+            }
+            res = gb_append_cstring(res, "]");
             break;
         default:
             assert(0 && "unreachable");
