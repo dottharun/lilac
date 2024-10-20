@@ -244,6 +244,15 @@ struct ast_Expr *par_parse_infix_expr(
                 par_parse_expression_list(parser, tok_RPAREN);
             break;
         case tok_LBRACKET:
+            res_left_expr->tag = ast_IDX_EXPR;
+            res_left_expr->data.idx.left = left_expr;
+            par_next_token(parser);
+            res_left_expr->data.idx.index =
+                par_parse_expression(parser, prec_LOWEST);
+
+            if (!par_expect_peek(parser, tok_RBRACKET)) {
+                return NULL;
+            }
             break;
         default:
             assert(0 && "unreachable");

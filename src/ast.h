@@ -22,6 +22,7 @@ struct ast_Expr {
         ast_CALL_EXPR,
         ast_STR_LIT_EXPR,
         ast_ARR_LIT_EXPR,
+        ast_IDX_EXPR,
     } tag;
 
     union {
@@ -73,6 +74,12 @@ struct ast_Expr {
         struct ast_Arr_lit {
             struct ast_Expr **elems_da;
         } arr;
+
+        // <left_expression>[<index_expression>]
+        struct ast_Idx {
+            struct ast_Expr *left;
+            struct ast_Expr *index;
+        } idx;
     } data;
 };
 

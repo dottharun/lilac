@@ -367,6 +367,14 @@ TEST parser_test_operator_precedence_parsing(void) {
           "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))" },
         { "add(a + b + c * d / f + g)",
           "add((((a + b) + ((c * d) / f)) + g))" },
+        {
+            "a * [1, 2, 3, 4][b * c] * d",
+            "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+        },
+        {
+            "add(a * b[2], b[1], 2 * [1, 2][1])",
+            "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+        },
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -683,6 +691,37 @@ TEST parser_test_arr_lit(void) {
     PASS();
 }
 
+TEST parser_test_idx_expr(void) {
+    char input[] = "myArray[1 + 1]";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *lit = stmt->data.expr.expr;
+    ASSERT(lit != NULL);
+    ASSERT(lit->tag == ast_IDX_EXPR);
+    ASSERT(test_identifier(lit->data.idx.left, "myArray"));
+    ASSERT(test_infix_expr(
+        lit->data.idx.index,
+        (expec_u){ .type = TEST_INT, .num = 1 },
+        "+",
+        (expec_u){ .type = TEST_INT, .num = 1 }
+    ));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -698,4 +737,5 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_call_expr);
     RUN_TEST(parser_test_string_lit);
     RUN_TEST(parser_test_arr_lit);
+    RUN_TEST(parser_test_idx_expr);
 }

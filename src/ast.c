@@ -71,6 +71,10 @@ struct ast_Expr *ast_deepcopy_expr(const struct ast_Expr *expr) {
                 stbds_arrput(new_expr->data.arr.elems_da, elem);
             }
             break;
+        case ast_IDX_EXPR:
+            new_expr->data.idx.left = ast_deepcopy_expr(expr->data.idx.left);
+            new_expr->data.idx.index = ast_deepcopy_expr(expr->data.idx.index);
+            break;
     }
 
     return new_expr;
@@ -157,6 +161,10 @@ void ast_free_expr(struct ast_Expr *expr) {
                 ast_free_expr(elem);
             }
             stbds_arrfree(expr->data.arr.elems_da);
+            break;
+        case ast_IDX_EXPR:
+            ast_free_expr(expr->data.idx.left);
+            ast_free_expr(expr->data.idx.index);
             break;
         default:
             assert(0 && "unreachable");
@@ -295,6 +303,15 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
             }
 
             str = gb_append_cstring(str, "]");
+            break;
+        case ast_IDX_EXPR:
+            str = gb_append_cstring(str, "(");
+            str = gb_append_string(str, ast_make_expr_str(expr->data.idx.left));
+            str = gb_append_cstring(str, "[");
+            str =
+                gb_append_string(str, ast_make_expr_str(expr->data.idx.index));
+            str = gb_append_cstring(str, "]");
+            str = gb_append_cstring(str, ")");
             break;
         default:
             assert(0 && "unreachable");
