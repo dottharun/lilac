@@ -28,6 +28,7 @@ if (5 < 10) {                 \
 \"foobar\"                    \
 \"foo bar\"                   \
 [1, 2];                       \
+{\"foo\": \"bar\"}            \
 ";
 
     struct tok_Token expected_tokens[] = {
@@ -116,6 +117,13 @@ if (5 < 10) {                 \
         { tok_INT, "2" },
         { tok_RBRACKET, "]" },
         { tok_SEMICOLON, ";" },
+        //
+        { tok_LBRACE, "{" },
+        { tok_STRING, "foo" },
+        { tok_COLON, ":" },
+        { tok_STRING, "bar" },
+        { tok_RBRACE, "}" },
+        { tok_EOF, "" },
         { tok_EOF, "" },
     };
     int expected_tokens_len =

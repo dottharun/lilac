@@ -500,6 +500,90 @@ TEST eval_test_arr_idx_expr(void) {
     PASS();
 }
 
+TEST eval_test_hash_literals(void) {
+    struct {
+        char *input;
+
+        struct {
+            obj_Object key;
+            int64_t expected_val;
+        } expected_pairs[6];
+
+        int num_pairs;
+    } test = {
+        .input = "let two = \"two\";\n"
+                 "{\n"
+                 "    \"one\": 10 - 9,\n"
+                 "    two: 1 + 1,\n"
+                 "    \"thr\" + \"ee\": 6 / 2,\n"
+                 "    4: 4,\n"
+                 "    true: 5,\n"
+                 "    false: 6\n"
+                 "}",
+        .expected_pairs = {
+            // String key "one" -> 1
+            {
+                .key = {.type = obj_STRING, .m_str = "one"},
+                .expected_val = 1
+            },
+            // String key "two" -> 2
+            {
+                .key = {.type = obj_STRING, .m_str = "two"},
+                .expected_val = 2
+            },
+            // String key "three" -> 3
+            {
+                .key = {.type = obj_STRING, .m_str = "three"},
+                .expected_val = 3
+            },
+            // Integer key 4 -> 4
+            {
+                .key = {.type = obj_INTEGER, .m_int = 4},
+                .expected_val = 4
+            },
+            // Boolean key true -> 5
+            {
+                .key = {.type = obj_BOOLEAN, .m_bool = true},
+                .expected_val = 5
+            },
+            // Boolean key false -> 6
+            {
+                .key = {.type = obj_BOOLEAN, .m_bool = false},
+                .expected_val = 6
+            }
+        },
+        .num_pairs = 6
+    };
+
+    obj_Object *evaluated = test_eval(test.input);
+
+    ASSERT(evaluated != NULL);
+    ASSERT(evaluated->type == obj_HASH);
+
+    int actual_count = stbds_arrlen(evaluated->m_hash.hash_da);
+    ASSERT_EQ(actual_count, test.num_pairs);
+
+    for (int i = 0; i < test.num_pairs; i++) {
+        bool found = false;
+        for (int j = 0; j < actual_count; j++) {
+            obj_Object *key = evaluated->m_hash.hash_da[j]->key;
+            obj_Object *val = evaluated->m_hash.hash_da[j]->val;
+
+            if (obj_is_same(key, &test.expected_pairs[i].key)) {
+                found = true;
+
+                ASSERT(val->type == obj_INTEGER);
+                ASSERT_EQ(val->m_int, test.expected_pairs[i].expected_val);
+                break;
+            }
+        }
+        ASSERT(found);
+    }
+
+    obj_free_object(evaluated);
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -518,4 +602,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_builtin_fn);
     RUN_TEST(eval_test_arr_lit);
     RUN_TEST(eval_test_arr_idx_expr);
+    RUN_TEST(eval_test_hash_literals);
 }

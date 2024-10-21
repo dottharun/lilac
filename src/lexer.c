@@ -146,6 +146,9 @@ struct tok_Token lex_next_token(struct lex_Lexer *lexer) {
         case ';':
             token = tok_Token_create(tok_SEMICOLON, lexer->ch);
             break;
+        case ':':
+            token = tok_Token_create(tok_COLON, lexer->ch);
+            break;
         case ',':
             token = tok_Token_create(tok_COMMA, lexer->ch);
             break;

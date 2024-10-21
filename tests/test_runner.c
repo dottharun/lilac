@@ -1,6 +1,7 @@
 #include "ast_test.c"
 #include "eval_test.c"
 #include "lexer_test.c"
+#include "object_test.c"
 #include "parser_test.c"
 
 /* greatest test runner main file */
@@ -17,6 +18,7 @@ int main(int argc, char **argv) {
     RUN_SUITE(lexer_suite);
     RUN_SUITE(parser_suite);
     RUN_SUITE(eval_suite);
+    RUN_SUITE(obj_suite);
 
     GREATEST_MAIN_END(); /* display results */
 }

@@ -27,6 +27,18 @@ bool test_int_literal(struct ast_Expr *il_expr, int val) {
     return true;
 }
 
+bool test_str_literal(struct ast_Expr *str_expr, char *val) {
+    assert(str_expr->tag == ast_STR_LIT_EXPR);
+    if (strcmp(val, str_expr->data.str.value) != 0) {
+        return false;
+    }
+
+    if (strcmp(val, str_expr->token.literal) != 0) {
+        return false;
+    }
+    return true;
+}
+
 bool test_bool_literal(struct ast_Expr *bool_expr, bool val) {
     assert(bool_expr != NULL);
     assert(bool_expr->tag == ast_BOOL_EXPR);
@@ -722,6 +734,122 @@ TEST parser_test_idx_expr(void) {
     PASS();
 }
 
+TEST parser_test_hash_lit_string_keys(void) {
+    char input[] = "{\"one\": 1, \"two\": 2, \"three\": 3}";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *hash = stmt->data.expr.expr;
+    ASSERT(hash != NULL);
+    ASSERT(hash->tag == ast_HASH_LIT_EXPR);
+    ASSERT_EQ(3, stbds_arrlen(hash->data.hash.hash_da));
+
+    struct {
+        char *key;
+        int val;
+    } tests[] = {
+        { "one", 1 },
+        { "two", 2 },
+        { "three", 3 },
+    };
+
+    for (int i = 0; i < 3; ++i) {
+        struct ast_Expr *key = hash->data.hash.hash_da[i]->key;
+        struct ast_Expr *val = hash->data.hash.hash_da[i]->val;
+        ASSERT(test_str_literal(key, tests[i].key));
+        ASSERT(test_int_literal(val, tests[i].val));
+    }
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
+TEST parser_test_hash_lit_empty(void) {
+    char input[] = "{}";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *hash = stmt->data.expr.expr;
+    ASSERT(hash != NULL);
+    ASSERT(hash->tag == ast_HASH_LIT_EXPR);
+    ASSERT_EQ(0, stbds_arrlen(hash->data.hash.hash_da));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
+TEST parser_test_hash_lit_with_int_keys(void) {
+    char input[] = "{1: 1, 2: 2, 3: 3}";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *hash = stmt->data.expr.expr;
+    ASSERT(hash != NULL);
+    ASSERT(hash->tag == ast_HASH_LIT_EXPR);
+    ASSERT_EQ(3, stbds_arrlen(hash->data.hash.hash_da));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
+TEST parser_test_hash_lit_with_expressions(void) {
+    char input[] = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}";
+
+    struct lex_Lexer lexer = lex_Lexer_create(input);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+    ASSERT(check_parser_errors(parser) == false);
+    ASSERT(program != NULL);
+    ASSERT_EQ_FMT((size_t)1, stbds_arrlen(program->statement_ptrs_da), "%lu");
+
+    struct ast_Stmt *stmt = program->statement_ptrs_da[0];
+    ASSERT(stmt != NULL);
+    ASSERT(stmt->tag == ast_EXPR_STMT);
+
+    struct ast_Expr *hash = stmt->data.expr.expr;
+    ASSERT(hash != NULL);
+    ASSERT(hash->tag == ast_HASH_LIT_EXPR);
+    ASSERT_EQ(3, stbds_arrlen(hash->data.hash.hash_da));
+
+    par_free_parser(parser);
+    ast_free_program(program);
+    PASS();
+}
+
 SUITE(parser_suite) {
     RUN_TEST(parser_test_let_statement);
     RUN_TEST(parser_test_ret_statement);
@@ -738,4 +866,8 @@ SUITE(parser_suite) {
     RUN_TEST(parser_test_string_lit);
     RUN_TEST(parser_test_arr_lit);
     RUN_TEST(parser_test_idx_expr);
+    RUN_TEST(parser_test_hash_lit_string_keys);
+    RUN_TEST(parser_test_hash_lit_empty);
+    RUN_TEST(parser_test_hash_lit_with_int_keys);
+    RUN_TEST(parser_test_hash_lit_with_expressions);
 }

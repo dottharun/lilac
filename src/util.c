@@ -55,8 +55,8 @@ char *util_str_deepcopy(const char *original) {
     return copy;
 }
 
-gbString util_int_to_str(int x) {
-    gbString str = gb_make_string_length("", 11);
+char *util_int_to_str(int x) {
+    char *str = gb_make_string_length("", 11);
     sprintf(str, "%d", x);
     return str;
 }

@@ -23,6 +23,7 @@ struct ast_Expr {
         ast_STR_LIT_EXPR,
         ast_ARR_LIT_EXPR,
         ast_IDX_EXPR,
+        ast_HASH_LIT_EXPR,
     } tag;
 
     union {
@@ -80,6 +81,14 @@ struct ast_Expr {
             struct ast_Expr *left;
             struct ast_Expr *index;
         } idx;
+
+        // FIXME: convert to hashmap for correct expression and better perf
+        struct ast_Hash {
+            struct ast_Hash_elem {
+                struct ast_Expr *key;
+                struct ast_Expr *val;
+            } **hash_da;
+        } hash;
     } data;
 };
 
@@ -129,6 +138,9 @@ struct ast_Expr **ast_deepcpy_fn_params(struct ast_Expr **params);
 
 gbString ast_make_expr_str(struct ast_Expr *expr);
 gbString ast_make_stmt_str(struct ast_Stmt *stmt);
+
+bool ast_is_expr_same(struct ast_Expr *a, struct ast_Expr *b);
+bool ast_is_stmt_same(struct ast_Stmt *a, struct ast_Stmt *b);
 
 struct ast_Program {
     // dynamic array of statement_ptrs

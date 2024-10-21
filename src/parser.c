@@ -69,6 +69,33 @@ bool par_is_infix_expr_parsable(enum tok_Type type) {
     return (type >= 0 && type < n) ? valid_infix_types[type] : false;
 }
 
+void par_hash_set(
+    struct ast_Expr *hash_expr,
+    struct ast_Expr *key,
+    struct ast_Expr *val
+) {
+    int found_times = 0;
+    int found_idx = -1;
+
+    int n = stbds_arrlen(hash_expr->data.hash.hash_da);
+    for (int i = 0; i < n; ++i) {
+        if (ast_is_expr_same(hash_expr->data.hash.hash_da[i]->key, key)) {
+            found_times++;
+            found_idx = i;
+        }
+    }
+    assert(found_times == 0 || found_times == 1);
+
+    if (found_times == 1) {
+        hash_expr->data.hash.hash_da[found_idx]->val = val;
+    } else {
+        struct ast_Hash_elem *elem = malloc(sizeof(struct ast_Hash_elem));
+        elem->key = key;
+        elem->val = val;
+        stbds_arrput(hash_expr->data.hash.hash_da, elem);
+    }
+}
+
 struct ast_Expr *
 par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
     TRACE_PARSER_FUNC;
@@ -187,12 +214,45 @@ par_parse_prefix_expr(enum tok_Type type, struct par_Parser *parser) {
             break;
         case tok_STRING:
             left_expr = ast_alloc_expr(ast_STR_LIT_EXPR);
+            left_expr->token = parser->curr_token;
             strcpy(left_expr->data.str.value, parser->curr_token.literal);
             break;
         case tok_LBRACKET:
             left_expr = ast_alloc_expr(ast_ARR_LIT_EXPR);
+            left_expr->token = parser->curr_token;
             left_expr->data.arr.elems_da =
                 par_parse_expression_list(parser, tok_RBRACKET);
+            break;
+        case tok_LBRACE:
+            left_expr = ast_alloc_expr(ast_HASH_LIT_EXPR);
+            left_expr->token = parser->curr_token;
+
+            while (!par_peek_token_is(parser, tok_RBRACE)) {
+                par_next_token(parser);
+                struct ast_Expr *key =
+                    par_parse_expression(parser, prec_LOWEST);
+
+                if (!par_expect_peek(parser, tok_COLON)) {
+                    return NULL;
+                }
+                par_next_token(parser);
+                struct ast_Expr *val =
+                    par_parse_expression(parser, prec_LOWEST);
+
+                // key val is not getting added to left_expr
+                // left_expr remains NULL - why
+                par_hash_set(left_expr, key, val);
+
+                if (!par_peek_token_is(parser, tok_RBRACE) &&
+                    !par_expect_peek(parser, tok_COMMA)) {
+                    return NULL;
+                }
+            }
+
+            if (!par_expect_peek(parser, tok_RBRACE)) {
+                return NULL;
+            }
+
             break;
         default:
             par_no_prefix_parsing_err(parser, type);

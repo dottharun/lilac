@@ -337,6 +337,24 @@ obj_Object *eval_expr(struct ast_Expr *expr, obj_Env *env) {
             }
             obj = eval_idx_expr(left, index);
             break;
+        case ast_HASH_LIT_EXPR:
+            obj = obj_alloc_object(obj_HASH);
+
+            for (int i = 0; i < stbds_arrlen(expr->data.hash.hash_da); ++i) {
+                obj_Object *key =
+                    eval_expr(expr->data.hash.hash_da[i]->key, env);
+                if (obj_is_err(key)) {
+                    return key;
+                }
+                obj_Object *val =
+                    eval_expr(expr->data.hash.hash_da[i]->val, env);
+                if (obj_is_err(val)) {
+                    return val;
+                }
+
+                obj_hash_put(obj, key, val);
+            }
+            break;
         default:
             assert(0 && "unreachable");
     }

@@ -62,6 +62,13 @@ typedef struct obj_Object {
         } m_builtin;
 
         obj_Object **m_arr_da;
+
+        struct obj_Hash {
+            struct obj_Hash_elem {
+                obj_Object *key;
+                obj_Object *val;
+            } **hash_da;
+        } m_hash;
     };
 } obj_Object;
 
@@ -130,6 +137,11 @@ obj_Object *obj_alloc_object(enum obj_Type type) {
             obj->type = obj_ARRAY;
             obj->m_arr_da = NULL;
             break;
+        case obj_HASH:
+            obj = malloc(sizeof(obj_Object));
+            obj->type = obj_HASH;
+            obj->m_hash.hash_da = NULL;
+            break;
         case obj_BOOLEAN: // should use the native objects
         case obj_ERROR: // use its own func
         default:
@@ -175,6 +187,14 @@ void obj_free_object(obj_Object *obj) {
             stbds_arrfree(obj->m_arr_da);
             free(obj);
             break;
+        case obj_HASH:
+            for (int i = 0; i < stbds_arrlen(obj->m_hash.hash_da); ++i) {
+                obj_free_object(obj->m_hash.hash_da[i]->key);
+                obj_free_object(obj->m_hash.hash_da[i]->val);
+            }
+            stbds_arrfree(obj->m_hash.hash_da);
+            free(obj);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -192,6 +212,7 @@ obj_Object *obj_deepcpy(obj_Object *src) {
         case obj_BOOLEAN:
         case obj_ERROR:
         case obj_STRING:
+        case obj_BUILTIN:
             // NOTHING - since no deep ptrs
             break;
         case obj_RETURN_VALUE:
@@ -208,6 +229,16 @@ obj_Object *obj_deepcpy(obj_Object *src) {
                 stbds_arrput(dest->m_arr_da, obj_deepcpy(src->m_arr_da[i]));
             }
             break;
+        case obj_HASH:
+            dest->m_hash.hash_da = NULL;
+            for (int i = 0; i < stbds_arrlen(src->m_hash.hash_da); ++i) {
+                struct obj_Hash_elem *elem =
+                    malloc(sizeof(struct ast_Hash_elem));
+                elem->key = obj_deepcpy(src->m_hash.hash_da[i]->key);
+                elem->val = obj_deepcpy(src->m_hash.hash_da[i]->val);
+                stbds_arrput(dest->m_hash.hash_da, elem);
+            }
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -218,9 +249,84 @@ bool obj_is_err(obj_Object *obj) {
     return (obj == NULL ? false : (obj->type == obj_ERROR));
 }
 
-bool obj_is_same(obj_Object *x, obj_Object *y) {
-    // FIXME: doesnt compare deep pointers
-    return (memcmp(x, y, sizeof(obj_Object)) == 0);
+bool obj_is_same(obj_Object *a, obj_Object *b) {
+    if (a == b)
+        return true; // Same pointer or both NULL
+    if (!a || !b)
+        return false; // One is NULL
+    if (a->type != b->type)
+        return false; // Different types
+
+    switch (a->type) {
+        case obj_INTEGER:
+            return a->m_int == b->m_int;
+
+        case obj_BOOLEAN:
+            return a->m_bool == b->m_bool;
+
+        case obj_RETURN_VALUE:
+            return obj_is_same(a->m_return_obj, b->m_return_obj);
+
+        case obj_ERROR:
+            return strcmp(a->m_err_msg, b->m_err_msg) == 0;
+
+        case obj_FUNCTION: {
+            // Functions are only equal if they're the same instance
+            // since they might have different closures/environments
+            return a == b;
+        }
+
+        case obj_STRING:
+            return strcmp(a->m_str, b->m_str) == 0;
+
+        case obj_BUILTIN:
+            return a->m_builtin == b->m_builtin;
+
+        case obj_ARRAY: {
+            int len_a = stbds_arrlen(a->m_arr_da);
+            int len_b = stbds_arrlen(b->m_arr_da);
+            if (len_a != len_b)
+                return false;
+
+            for (int i = 0; i < len_a; i++) {
+                if (!obj_is_same(a->m_arr_da[i], b->m_arr_da[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        case obj_HASH: {
+            int len_a = stbds_arrlen(a->m_hash.hash_da);
+            int len_b = stbds_arrlen(b->m_hash.hash_da);
+            if (len_a != len_b)
+                return false;
+
+            // For each key-value pair in a, find matching pair in b
+            for (int i = 0; i < len_a; i++) {
+                bool found = false;
+                for (int j = 0; j < len_b; j++) {
+                    if (obj_is_same(
+                            a->m_hash.hash_da[i]->key,
+                            b->m_hash.hash_da[j]->key
+                        ) &&
+                        obj_is_same(
+                            a->m_hash.hash_da[i]->val,
+                            b->m_hash.hash_da[j]->val
+                        )) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    return false;
+            }
+            return true;
+        }
+
+        default:
+            return false;
+    }
 }
 
 bool obj_is_truthy(obj_Object *obj) {
@@ -241,7 +347,7 @@ gbString obj_object_inspect(obj_Object *obj) {
     gbString res = gb_make_string("");
     switch (obj->type) {
         case obj_INTEGER:
-            res = gb_append_string(res, util_int_to_str(obj->m_int));
+            res = gb_append_cstring(res, util_int_to_str(obj->m_int));
             break;
         case obj_BOOLEAN:
             res = gb_append_cstring(res, obj->m_bool ? "true" : "false");
@@ -272,7 +378,7 @@ gbString obj_object_inspect(obj_Object *obj) {
             res = gb_append_cstring(res, "\n}");
             break;
         case obj_STRING:
-            res = gb_append_string(res, obj->m_str);
+            res = gb_append_cstring(res, obj->m_str);
             break;
         case obj_BUILTIN:
             res = gb_append_cstring(res, "builtin function");
@@ -289,8 +395,46 @@ gbString obj_object_inspect(obj_Object *obj) {
             }
             res = gb_append_cstring(res, "]");
             break;
+        case obj_HASH:
+            res = gb_append_cstring(res, "{");
+            for (int i = 0; i < stbds_arrlen(obj->m_hash.hash_da); ++i) {
+                gbString key = obj_object_inspect(obj->m_hash.hash_da[i]->key);
+                gbString val = obj_object_inspect(obj->m_hash.hash_da[i]->val);
+                res = gb_append_string(res, key);
+                res = gb_append_cstring(res, ": ");
+                res = gb_append_string(res, val);
+                if (i == stbds_arrlen(obj->m_hash.hash_da) - 1) {
+                    break;
+                }
+                res = gb_append_cstring(res, ", ");
+            }
+            res = gb_append_cstring(res, "}");
+            break;
         default:
             assert(0 && "unreachable");
     }
     return res;
+}
+
+void obj_hash_put(obj_Object *obj, obj_Object *key, obj_Object *val) {
+    int found_times = 0;
+    int found_idx = -1;
+
+    int n = stbds_arrlen(obj->m_hash.hash_da);
+    for (int i = 0; i < n; ++i) {
+        if (obj_is_same(obj->m_hash.hash_da[i]->key, key)) {
+            found_times++;
+            found_idx = i;
+        }
+    }
+    assert(found_times == 0 || found_times == 1);
+
+    if (found_times == 1) {
+        obj->m_hash.hash_da[found_idx]->val = val;
+    } else {
+        struct obj_Hash_elem *elem = malloc(sizeof(struct ast_Hash_elem));
+        elem->key = key;
+        elem->val = val;
+        stbds_arrput(obj->m_hash.hash_da, elem);
+    }
 }

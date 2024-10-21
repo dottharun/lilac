@@ -75,6 +75,16 @@ struct ast_Expr *ast_deepcopy_expr(const struct ast_Expr *expr) {
             new_expr->data.idx.left = ast_deepcopy_expr(expr->data.idx.left);
             new_expr->data.idx.index = ast_deepcopy_expr(expr->data.idx.index);
             break;
+        case ast_HASH_LIT_EXPR:
+            new_expr->data.hash.hash_da = NULL;
+            for (int i = 0; i < stbds_arrlen(expr->data.hash.hash_da); i++) {
+                struct ast_Hash_elem *elem =
+                    malloc(sizeof(struct ast_Hash_elem));
+                elem->key = ast_deepcopy_expr(expr->data.hash.hash_da[i]->key);
+                elem->val = ast_deepcopy_expr(expr->data.hash.hash_da[i]->val);
+                stbds_arrput(new_expr->data.hash.hash_da, elem);
+            }
+            break;
     }
 
     return new_expr;
@@ -166,6 +176,14 @@ void ast_free_expr(struct ast_Expr *expr) {
             ast_free_expr(expr->data.idx.left);
             ast_free_expr(expr->data.idx.index);
             break;
+        case ast_HASH_LIT_EXPR:
+            for (int i = 0; i < stbds_arrlen(expr->data.hash.hash_da); ++i) {
+                ast_free_expr(expr->data.hash.hash_da[i]->key);
+                ast_free_expr(expr->data.hash.hash_da[i]->val);
+            }
+
+            stbds_arrfree(expr->data.hash.hash_da);
+            break;
         default:
             assert(0 && "unreachable");
     }
@@ -201,6 +219,9 @@ struct ast_Expr *ast_alloc_expr(enum ast_expr_tag tag) {
             break;
         case ast_ARR_LIT_EXPR:
             expr->data.arr.elems_da = NULL;
+            break;
+        case ast_HASH_LIT_EXPR:
+            expr->data.hash.hash_da = NULL;
             break;
         default:
             assert(0 && "unreachable");
@@ -312,6 +333,22 @@ gbString ast_make_expr_str(struct ast_Expr *expr) {
                 gb_append_string(str, ast_make_expr_str(expr->data.idx.index));
             str = gb_append_cstring(str, "]");
             str = gb_append_cstring(str, ")");
+            break;
+        case ast_HASH_LIT_EXPR:
+            str = gb_append_cstring(str, "{");
+            struct ast_Hash_elem **hashes = expr->data.hash.hash_da;
+            for (int i = 0; i < stbds_arrlen(hashes); ++i) {
+                gbString key = ast_make_expr_str(hashes[i]->key);
+                gbString val = ast_make_expr_str(hashes[i]->val);
+                str = gb_append_string(str, key);
+                str = gb_append_cstring(str, ": ");
+                str = gb_append_string(str, val);
+                if (i == stbds_arrlen(hashes) - 1) {
+                    break;
+                }
+                str = gb_append_cstring(str, ", ");
+            }
+            str = gb_append_cstring(str, "}");
             break;
         default:
             assert(0 && "unreachable");
@@ -483,4 +520,155 @@ gbString ast_make_program_str(struct ast_Program *prg) {
     }
 
     return str;
+}
+
+bool ast_is_expr_same(struct ast_Expr *a, struct ast_Expr *b) {
+    if (a == NULL && b == NULL)
+        return true;
+    if (a == NULL || b == NULL)
+        return false;
+
+    // First check tag
+    if (a->tag != b->tag)
+        return false;
+
+    // Then do deep comparison based on tag
+    switch (a->tag) {
+        case ast_IDENT_EXPR:
+            return strcmp(a->data.ident.value, b->data.ident.value) == 0;
+
+        case ast_INT_LIT_EXPR:
+            return a->data.int_lit.value == b->data.int_lit.value;
+
+        case ast_PREFIX_EXPR:
+            return strcmp(a->data.pf.operator, b->data.pf.operator) == 0 &&
+                   ast_is_expr_same(a->data.pf.right, b->data.pf.right);
+
+        case ast_INFIX_EXPR:
+            return strcmp(a->data.inf.operator, b->data.inf.operator) == 0 &&
+                   ast_is_expr_same(a->data.inf.left, b->data.inf.left) &&
+                   ast_is_expr_same(a->data.inf.right, b->data.inf.right);
+
+        case ast_BOOL_EXPR:
+            return a->data.boolean.value == b->data.boolean.value;
+
+        case ast_IF_EXPR:
+            return ast_is_expr_same(a->data.ife.cond, b->data.ife.cond) &&
+                   ast_is_stmt_same(a->data.ife.conseq, b->data.ife.conseq) &&
+                   ast_is_stmt_same(a->data.ife.alt, b->data.ife.alt);
+
+        case ast_FN_LIT_EXPR: {
+            if (stbds_arrlen(a->data.fn_lit.params_da) !=
+                stbds_arrlen(b->data.fn_lit.params_da))
+                return false;
+
+            for (int i = 0; i < stbds_arrlen(a->data.fn_lit.params_da); i++) {
+                if (!ast_is_expr_same(
+                        a->data.fn_lit.params_da[i],
+                        b->data.fn_lit.params_da[i]
+                    ))
+                    return false;
+            }
+            return ast_is_stmt_same(a->data.fn_lit.body, b->data.fn_lit.body);
+        }
+
+        case ast_CALL_EXPR: {
+            if (!ast_is_expr_same(a->data.call.func, b->data.call.func))
+                return false;
+
+            if (stbds_arrlen(a->data.call.args_da) !=
+                stbds_arrlen(b->data.call.args_da))
+                return false;
+
+            for (int i = 0; i < stbds_arrlen(a->data.call.args_da); i++) {
+                if (!ast_is_expr_same(
+                        a->data.call.args_da[i],
+                        b->data.call.args_da[i]
+                    ))
+                    return false;
+            }
+            return true;
+        }
+
+        case ast_STR_LIT_EXPR:
+            return strcmp(a->data.str.value, b->data.str.value) == 0;
+
+        case ast_ARR_LIT_EXPR: {
+            if (stbds_arrlen(a->data.arr.elems_da) !=
+                stbds_arrlen(b->data.arr.elems_da))
+                return false;
+
+            for (int i = 0; i < stbds_arrlen(a->data.arr.elems_da); i++) {
+                if (!ast_is_expr_same(
+                        a->data.arr.elems_da[i],
+                        b->data.arr.elems_da[i]
+                    ))
+                    return false;
+            }
+            return true;
+        }
+
+        case ast_IDX_EXPR:
+            return ast_is_expr_same(a->data.idx.left, b->data.idx.left) &&
+                   ast_is_expr_same(a->data.idx.index, b->data.idx.index);
+
+        case ast_HASH_LIT_EXPR: {
+            if (stbds_arrlen(a->data.hash.hash_da) !=
+                stbds_arrlen(b->data.hash.hash_da))
+                return false;
+
+            // FIXME: hashes may not be aligned
+            for (int i = 0; i < stbds_arrlen(a->data.hash.hash_da); i++) {
+                if (!ast_is_expr_same(
+                        a->data.hash.hash_da[i]->key,
+                        b->data.hash.hash_da[i]->key
+                    ) ||
+                    !ast_is_expr_same(
+                        a->data.hash.hash_da[i]->val,
+                        b->data.hash.hash_da[i]->val
+                    ))
+                    return false;
+            }
+            return true;
+        }
+    }
+    return false; // Unknown tag
+}
+
+bool ast_is_stmt_same(struct ast_Stmt *a, struct ast_Stmt *b) {
+    if (a == NULL && b == NULL)
+        return true;
+    if (a == NULL || b == NULL)
+        return false;
+
+    if (a->tag != b->tag)
+        return false;
+
+    switch (a->tag) {
+        case ast_LET_STMT:
+            return ast_is_expr_same(a->data.let.name, b->data.let.name) &&
+                   ast_is_expr_same(a->data.let.value, b->data.let.value);
+
+        case ast_RET_STMT:
+            return ast_is_expr_same(a->data.ret.ret_val, b->data.ret.ret_val);
+
+        case ast_EXPR_STMT:
+            return ast_is_expr_same(a->data.expr.expr, b->data.expr.expr);
+
+        case ast_BLOCK_STMT: {
+            if (stbds_arrlen(a->data.block.stmts_da) !=
+                stbds_arrlen(b->data.block.stmts_da))
+                return false;
+
+            for (int i = 0; i < stbds_arrlen(a->data.block.stmts_da); i++) {
+                if (!ast_is_stmt_same(
+                        a->data.block.stmts_da[i],
+                        b->data.block.stmts_da[i]
+                    ))
+                    return false;
+            }
+            return true;
+        }
+    }
+    return false; // Unknown tag
 }
