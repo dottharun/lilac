@@ -244,9 +244,21 @@ obj_Object *eval_arr_idx_expr(obj_Object *arr, obj_Object *index) {
     return arr->m_arr_da[idx];
 }
 
+obj_Object *eval_hash_idx_expr(obj_Object *hash, obj_Object *index) {
+    int n = stbds_arrlen(hash->m_hash.hash_da);
+    for (int i = 0; i < n; ++i) {
+        if (obj_is_same(index, hash->m_hash.hash_da[i]->key)) {
+            return hash->m_hash.hash_da[i]->val;
+        }
+    }
+    return obj_null();
+}
+
 obj_Object *eval_idx_expr(obj_Object *left, obj_Object *index) {
     if (left->type == obj_ARRAY && index->type == obj_INTEGER) {
         return eval_arr_idx_expr(left, index);
+    } else if (left->type == obj_HASH) {
+        return eval_hash_idx_expr(left, index);
     } else {
         return obj_alloc_err_object(
             "index operator not supported: %s",

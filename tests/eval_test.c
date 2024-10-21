@@ -584,6 +584,33 @@ TEST eval_test_hash_literals(void) {
     PASS();
 }
 
+TEST eval_test_hash_idx_expr(void) {
+    struct {
+        char *input;
+        int expected;
+    } tests[] = {
+        { "{\"foo\": 5}[\"foo\"]", 5 },
+        { "{\"foo\": 5}[\"bar\"]", nil },
+        { "let key = \"foo\"; {\"foo\": 5}[key]", 5 },
+        { "{}[\"foo\"]", nil },
+        { "{5: 5}[5]", 5 },
+        { "{true: 5}[true]", 5 },
+        { "{false: 5}[false]", 5 },
+    };
+
+    int n = sizeof(tests) / sizeof(tests[0]);
+    for (int i = 0; i < n; ++i) {
+        obj_Object *evaluated = test_eval(tests[i].input);
+        if (tests[i].expected != nil) {
+            ASSERT(test_int_obj(evaluated, tests[i].expected));
+        } else {
+            ASSERT(test_null_obj(evaluated));
+        }
+        obj_free_object(evaluated);
+    }
+    PASS();
+}
+
 SUITE(eval_suite) {
     RUN_TEST(eval_test_int_expr);
     RUN_TEST(eval_test_bool_expr);
@@ -603,4 +630,5 @@ SUITE(eval_suite) {
     RUN_TEST(eval_test_arr_lit);
     RUN_TEST(eval_test_arr_idx_expr);
     RUN_TEST(eval_test_hash_literals);
+    RUN_TEST(eval_test_hash_idx_expr);
 }
