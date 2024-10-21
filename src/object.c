@@ -59,6 +59,7 @@ typedef struct obj_Object {
             BUILTIN_LAST,
             BUILTIN_REST,
             BUILTIN_PUSH,
+            BUILTIN_PUTS,
         } m_builtin;
 
         obj_Object **m_arr_da;

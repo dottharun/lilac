@@ -15,6 +15,8 @@ obj_Object *builtin_from_keyword(const char *keyword) {
         obj->m_builtin = BUILTIN_REST;
     } else if (0 == strcmp(keyword, "push")) {
         obj->m_builtin = BUILTIN_PUSH;
+    } else if (0 == strcmp(keyword, "puts")) {
+        obj->m_builtin = BUILTIN_PUTS;
     } else {
         return NULL;
     }
@@ -149,4 +151,13 @@ obj_Object *builtin_eval_push(obj_Object **args) {
 
     assert(stbds_arrlen(new_arr->m_arr_da) == n + 1);
     return new_arr;
+}
+
+obj_Object *builtin_eval_puts(obj_Object **args) {
+    int n = stbds_arrlen(args);
+    for (int i = 0; i < n; ++i) {
+        printf("%s\n", obj_object_inspect(args[i]));
+    }
+
+    return NULL;
 }

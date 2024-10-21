@@ -214,6 +214,8 @@ obj_Object *eval_builtins(obj_Object *func, obj_Object **args) {
             return builtin_eval_rest(args);
         case BUILTIN_PUSH:
             return builtin_eval_push(args);
+        case BUILTIN_PUTS:
+            return builtin_eval_puts(args);
         default:
             assert(0 && "unreachable");
     }
