@@ -12,39 +12,23 @@ enum repl_modes {
     repl_mode_EVAL,
 };
 
-void repl_start_lexer() {
-    const char PROMPT[] = "LILAC-LEXER> ";
-    for (;;) {
-        printf(PROMPT);
+char *repl_lex_str(char *line) {
+    gbString out_str = gb_make_string("");
+    struct lex_Lexer lexer = lex_Lexer_create(line);
 
-        sstring line = "";
-        fgets(line, sizeof(line), stdin);
+    for (struct tok_Token token = lex_next_token(&lexer); token.type != tok_EOF;
+         token = lex_next_token(&lexer)) {
 
-        struct lex_Lexer lexer = lex_Lexer_create(line);
-
-        for (struct tok_Token token = lex_next_token(&lexer);
-             token.type != tok_EOF;
-             token = lex_next_token(&lexer)) {
-
-            printf(
-                "token! type: %s lit: %s\n",
-                tok_Token_int_enum_to_str(token.type),
-                token.literal
-            );
-        }
+        sstring line;
+        sprintf(
+            line,
+            "token! type: %s lit: %s\n",
+            tok_Token_int_enum_to_str(token.type),
+            token.literal
+        );
+        out_str = gb_append_cstring(out_str, line);
     }
-}
-
-void repl_print_parser_errors(gbString *errs) {
-    int n = stbds_arrlen(errs);
-
-    char *plural = n > 1 ? "s" : "";
-    printf("Parser has %d Error%s.\n", (int)n, plural);
-
-    for (int i = 0; i < n; ++i) {
-        char *msg = errs[i];
-        printf("\t%s.\n", msg);
-    }
+    return out_str;
 }
 
 const char MONKEY_EEK[] = "\
@@ -61,83 +45,122 @@ _|| _| || |_ ||_      \n\
 \\|||___||___|||/\\   \n\
 ";
 
-void repl_start_parser() {
-    const char PROMPT[] = "LILAC-PARSER> ";
+char *repl_print_parser_errors(gbString *errs) {
+    gbString err_str = gb_make_string("");
+    int n = stbds_arrlen(errs);
 
-    for (;;) {
-        printf(PROMPT);
+    err_str = gb_append_cstring(err_str, MONKEY_EEK);
+    err_str = gb_append_cstring(
+        err_str,
+        "Oops, the monkey sees some errors in parser.\n"
+    );
 
-        sstring line = "";
-        fgets(line, sizeof(line), stdin);
+    sstring line1;
+    char *plural = n > 1 ? "s" : "";
+    sprintf(line1, "Parser has %d Error%s.\n", (int)n, plural);
+    err_str = gb_append_cstring(err_str, line1);
 
-        struct lex_Lexer lexer = lex_Lexer_create(line);
-        struct par_Parser *parser = par_alloc_parser(&lexer);
-        struct ast_Program *program = ast_alloc_program();
-        par_parse_program(parser, program);
-
-        if (stbds_arrlen(parser->errors_da) != 0) {
-            printf("%s", MONKEY_EEK);
-            printf("Oops, the monkey sees some errors.\n");
-            repl_print_parser_errors(parser->errors_da);
-            continue;
-        }
-
-        gbString prg_str = ast_make_program_str(program);
-        printf("%s\n", prg_str);
-
-        gb_free_string(prg_str);
-        par_free_parser(parser);
-        ast_free_program(program);
+    for (int i = 0; i < n; ++i) {
+        char *msg = errs[i];
+        sstring line;
+        sprintf(line, "\t%s.\n", msg);
+        err_str = gb_append_cstring(err_str, line);
     }
+    return err_str;
 }
 
-void repl_start_eval() {
-    const char PROMPT[] = "LILAC> ";
-    obj_Env *env = obj_alloc_env();
+char *repl_parse_str(char *line) {
+    gbString out_str = gb_make_string("");
 
-    for (;;) {
-        printf(PROMPT);
+    struct lex_Lexer lexer = lex_Lexer_create(line);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
 
-        sstring line = "";
-        fgets(line, sizeof(line), stdin);
-
-        struct lex_Lexer lexer = lex_Lexer_create(line);
-        struct par_Parser *parser = par_alloc_parser(&lexer);
-        struct ast_Program *program = ast_alloc_program();
-        par_parse_program(parser, program);
-
-        if (stbds_arrlen(parser->errors_da) != 0) {
-            printf("%s", MONKEY_EEK);
-            printf("Oops, the monkey sees some errors in parser.\n");
-            repl_print_parser_errors(parser->errors_da);
-            continue;
-        }
-
-        obj_Object *evaluated =
-            eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, env);
-
-        if (evaluated != NULL) {
-            printf("%s\n", obj_object_inspect(evaluated));
-        }
-
-        obj_free_object(evaluated);
-        par_free_parser(parser);
-        ast_free_program(program);
+    if (stbds_arrlen(parser->errors_da) != 0) {
+        out_str = gb_append_cstring(
+            out_str,
+            repl_print_parser_errors(parser->errors_da)
+        );
+        return out_str;
     }
+
+    gbString prg_str = ast_make_program_str(program);
+    out_str = gb_append_cstring(out_str, prg_str != NULL ? prg_str : "");
+
+    gb_free_string(prg_str);
+    par_free_parser(parser);
+    ast_free_program(program);
+    return out_str;
 }
 
-void repl_start(enum repl_modes mode) {
+obj_Env EVAL_ENV = { .store = NULL, .outer = NULL };
+
+char *repl_eval_str(char *line) {
+    gbString out_str = gb_make_string("");
+
+    struct lex_Lexer lexer = lex_Lexer_create(line);
+    struct par_Parser *parser = par_alloc_parser(&lexer);
+    struct ast_Program *program = ast_alloc_program();
+    par_parse_program(parser, program);
+
+    if (stbds_arrlen(parser->errors_da) != 0) {
+        out_str = gb_append_cstring(
+            out_str,
+            repl_print_parser_errors(parser->errors_da)
+        );
+        return out_str;
+    }
+
+    obj_Object *evaluated =
+        eval_eval((ast_Node){ ast_NODE_PRG, .prg = program }, &EVAL_ENV);
+
+    out_str = gb_append_cstring(
+        out_str,
+        evaluated != NULL ? obj_object_inspect(evaluated) : ""
+    );
+
+    obj_free_object(evaluated);
+    par_free_parser(parser);
+    ast_free_program(program);
+    return out_str;
+}
+
+const char *repl_make_prompt(const enum repl_modes mode) {
     switch (mode) {
         case repl_mode_EVAL:
-            repl_start_eval();
-            break;
+            return "LILAC> ";
         case repl_mode_LEXER:
-            repl_start_lexer();
-            break;
+            return "LILAC-LEXER> ";
         case repl_mode_PARSER:
-            repl_start_parser();
-            break;
-        default:
-            assert(0 && "unreachable");
+            return "LILAC-PARSER> ";
+    }
+}
+
+void repl_start(const enum repl_modes mode) {
+    const char *PROMPT = repl_make_prompt(mode);
+
+    for (;;) {
+        printf("%s", PROMPT);
+        sstring line = "";
+        fgets(line, sizeof(line), stdin);
+
+        char *output_str = NULL;
+        switch (mode) {
+            case repl_mode_EVAL:
+                output_str = repl_eval_str(line);
+                break;
+            case repl_mode_PARSER:
+                output_str = repl_parse_str(line);
+                break;
+            case repl_mode_LEXER:
+                output_str = repl_lex_str(line);
+                break;
+        }
+
+        if (strlen(output_str) != 0) {
+            printf("%s\n", output_str);
+        }
+        gb_free_string(output_str);
     }
 }
