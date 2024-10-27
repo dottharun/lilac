@@ -7,11 +7,49 @@
   </head>
   <body>
     <h1>LILAC WebAssembly REPL Test</h1>
-    <input id="input" type="text" placeholder="Type your code here" />
 
-    <button onclick="lilac_eval()">Evaluate</button>
+    <div>
+      <button onclick='fillExample("\"Hello world!\"")'>Hello World</button>
+      <button
+        onclick='fillExample(`let people = [{\"name\": \"Alice\", \"age\": 24}, {\"name\": \"Anna\", \"age\": 28}];
+let getName = fn(person) { return person[\"name\"]; };
+getName(people[1]);`)'
+      >
+        Hash-objects
+      </button>
+      <button
+        onclick="fillExample(`let map = fn(arr, f) {
+    let iter = fn(arr, accumulated) {
+        if (len(arr) == 0) {
+            return accumulated;
+        } else {
+            return iter(rest(arr), push(accumulated, f(first(arr))));
+        }
+    };
+    iter(arr, []);
+};
 
-    <p id="output"></p>
+let a = [1, 2, 3, 4];
+let double = fn(x) { return x * 2; };
+
+a;
+map(a, double);`)"
+      >
+        Map Implementation
+      </button>
+    </div>
+
+    <div>
+      <textarea
+        id="input"
+        rows="20"
+        cols="80"
+        placeholder="Type your code here"
+      ></textarea>
+      <button onclick="lilac_eval()">Evaluate</button>
+    </div>
+
+    <pre id="output"></pre>
 
     <script src="lilac.js"></script>
     <script>
@@ -24,7 +62,12 @@
       function lilac_eval() {
         const input = document.getElementById("input").value;
         const result = replEvalStr(input);
+        console.log("res:", result);
         document.getElementById("output").textContent = result;
+      }
+
+      function fillExample(code) {
+        document.getElementById("input").value = code;
       }
     </script>
   </body>
