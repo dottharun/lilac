@@ -4,9 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>REPL Test</title>
+    <style>
+      body {
+        background: #1e1e1e;
+        color: #d4d4d4;
+      }
+      textarea,
+      button {
+        background: #2d2d2d;
+        color: #d4d4d4;
+      }
+    </style>
   </head>
   <body>
-    <h1>LILAC WebAssembly REPL Test</h1>
+    <h1>Lilac Interpreter for MonkeyLang</h1>
 
     <div>
       <button onclick='fillExample("\"Hello world!\"")'>Hello World</button>
@@ -45,6 +56,7 @@ map(a, double);`)"
         rows="20"
         cols="80"
         placeholder="Type your code here"
+        spellcheck="false"
       ></textarea>
       <button onclick="lilac_eval()">Evaluate</button>
     </div>
