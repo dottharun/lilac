@@ -32,18 +32,19 @@ wasm: $(WASM_OUT)
 
 $(WASM_OUT): $(SRC)
 	emcc $(CFLAGS) $(WASM_FLAGS) $< -o $@ $(LDFLAGS)
+	cp -f site/index.html out/index.html
 
 compile-db:
 	bear -- make all
 
 stb:
-	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/nothings/stb/1ee679ca2ef753a528db5ba6801e1067b40481b8/stb_ds.h
+	curl -L -o $(EXTERNALDIR)/stb_ds.h https://raw.githubusercontent.com/nothings/stb/1ee679ca2ef753a528db5ba6801e1067b40481b8/stb_ds.h
 
 greatest:
-	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/silentbicycle/greatest/fbbf9818ec72578289716bf6002b11fd25185e02/greatest.h
+	curl -L -o $(EXTERNALDIR)/greatest.h https://raw.githubusercontent.com/silentbicycle/greatest/fbbf9818ec72578289716bf6002b11fd25185e02/greatest.h
 
 gb:
-	wget -NP $(EXTERNALDIR) https://raw.githubusercontent.com/gingerBill/gb/fd88428545cac94db72e93a1ff36c27153628874/gb_string.h
+	curl -L -o $(EXTERNALDIR)/gb_string.h https://raw.githubusercontent.com/gingerBill/gb/fd88428545cac94db72e93a1ff36c27153628874/gb_string.h
 
 deps: greatest stb gb
 
