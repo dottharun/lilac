@@ -48,6 +48,11 @@ gb:
 
 deps: greatest stb gb
 
+prod:
+	./scripts/setup_llvm.sh
+	./scripts/setup_emsdk.sh
+	make deps
+
 clean:
 	rm -rf $(OUTDIR)/*
 
