@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>REPL Test</title>
+  </head>
+  <body>
+    <h1>LILAC WebAssembly REPL Test</h1>
+    <input id="input" type="text" placeholder="Type your code here" />
+
+    <button onclick="lilac_eval()">Evaluate</button>
+
+    <p id="output"></p>
+
+    <script src="lilac.js"></script>
+    <script>
+      let replEvalStr;
+
+      Module.onRuntimeInitialized = () => {
+        replEvalStr = Module.cwrap("repl_eval_str", "string", ["string"]);
+      };
+
+      function lilac_eval() {
+        const input = document.getElementById("input").value;
+        const result = replEvalStr(input);
+        document.getElementById("output").textContent = result;
+      }
+    </script>
+  </body>
+</html>

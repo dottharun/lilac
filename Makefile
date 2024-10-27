@@ -13,6 +13,9 @@ EXTERNALDIR = external
 TEST_SRC = tests/test_runner.c
 TEST_OUT = $(OUTDIR)/test_runner
 
+WASM_OUT = out/lilac.js
+WASM_FLAGS = -s WASM=1 -s EXPORTED_RUNTIME_METHODS='["cwrap"]' -s INVOKE_RUN=0
+
 $(shell mkdir -p $(OUTDIR) $(EXTERNALDIR))
 
 all: $(OUT)
@@ -24,6 +27,11 @@ test: $(TEST_OUT)
 
 $(TEST_OUT): $(TEST_SRC)
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+
+wasm: $(WASM_OUT)
+
+$(WASM_OUT): $(SRC)
+	emcc $(CFLAGS) $(WASM_FLAGS) $< -o $@ $(LDFLAGS)
 
 compile-db:
 	bear -- make all

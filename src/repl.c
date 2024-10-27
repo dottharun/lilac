@@ -6,6 +6,10 @@
 
 #include <stdio.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 enum repl_modes {
     repl_mode_LEXER,
     repl_mode_PARSER,
@@ -96,6 +100,9 @@ char *repl_parse_str(char *line) {
 
 obj_Env EVAL_ENV = { .store = NULL, .outer = NULL };
 
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+#endif
 char *repl_eval_str(char *line) {
     gbString out_str = gb_make_string("");
 
