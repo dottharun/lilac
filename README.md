@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/34f7684f-48aa-4e39-8a03-aed9777b29d9
 ## setup
 ### Build Deps
 - clang > 18.1.8
-- wget
+- curl
 
 ### Build
 - `make deps` to setup include file deps
